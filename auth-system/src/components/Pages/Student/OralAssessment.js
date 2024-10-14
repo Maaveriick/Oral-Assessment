@@ -35,7 +35,7 @@ const OralAssessmentHome = () => {
 
       // Call the API to generate the question
       try {
-        const response = await fetch(`http://localhost:5000/generate-questions`, {
+        const response = await fetch(`http://localhost:5000/generate_questions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -49,17 +49,19 @@ const OralAssessmentHome = () => {
 
         const result = await response.json();
 
-        if (result.question) {
-          // Set the generated question to display it
-          setGeneratedQuestion(result.question);
+        // Check if questions were generated and set the first one as the generated question
+        if (result.questions && result.questions.length > 0) {
+          setGeneratedQuestion(result.questions[0].question); // Assuming each question object has a 'question' field
         } else {
-          console.error('No question found in the response.');
+          console.error('No questions found in the response.');
         }
       } catch (error) {
         console.error('Error generating question:', error);
       }
 
-      setIsGenerating(false); // Re-enable the button
+      // After generating the question, keep the button disabled
+      // Reset only when a new topic is selected
+      // Note: The button will still be disabled due to isGenerating state
     }
   };
 
@@ -127,7 +129,7 @@ const OralAssessmentHome = () => {
             <button
               className="btn btn-primary"
               onClick={handleStartClick}
-              disabled={!selectedTopic || isGenerating} // Disable if no topic is selected or generating
+              disabled={isGenerating || !selectedTopic}
             >
               {isGenerating ? 'Generating...' : 'Start'}
             </button>
@@ -136,7 +138,8 @@ const OralAssessmentHome = () => {
           {/* Display Generated Question */}
           {generatedQuestion && (
             <div className="mt-4">
-              <h5>Question: {generatedQuestion}</h5>
+              <h3>Generated Question:</h3>
+              <p>{generatedQuestion}</p>
             </div>
           )}
         </div>
