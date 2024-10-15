@@ -19,6 +19,10 @@ const OralAssessmentHome = () => {
       }
     };
 
+    // Log the signed-in user
+    const username = localStorage.getItem('username');
+    console.log(`Signed in as: ${username}`); // Log the username
+
     fetchTopics();
   }, []);
 
@@ -33,6 +37,8 @@ const OralAssessmentHome = () => {
     if (selectedTopic) {
       setIsGenerating(true); // Disable the Start button while generating the question
 
+      const username = localStorage.getItem('username'); // Retrieve username from localStorage
+
       // Call the API to generate the question
       try {
         const response = await fetch(`http://localhost:5000/generate_questions`, {
@@ -40,7 +46,11 @@ const OralAssessmentHome = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ description: selectedTopic.description, topicId: selectedTopic.id }),
+          body: JSON.stringify({ 
+            description: selectedTopic.description, 
+            topicId: selectedTopic.id, 
+            username // Include username here
+          }),
         });
 
         if (!response.ok) {
@@ -58,10 +68,6 @@ const OralAssessmentHome = () => {
       } catch (error) {
         console.error('Error generating question:', error);
       }
-
-      // After generating the question, keep the button disabled
-      // Reset only when a new topic is selected
-      // Note: The button will still be disabled due to isGenerating state
     }
   };
 

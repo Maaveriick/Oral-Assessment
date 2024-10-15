@@ -12,22 +12,25 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, role }), // Send role along with email and password
+        body: JSON.stringify({ email, password, role }),
       });
-
+  
       if (response.ok) {
         const data = await response.json();
         const { username, role } = data;
-
+  
+        // Store the username in local storage
+        localStorage.setItem('username', username); // Save username
+  
         onLoginSuccess(username, role); // Pass both username and role to parent
-
+  
         // Navigate based on the role
         if (role === 'Student') {
           navigate('/homestudent');

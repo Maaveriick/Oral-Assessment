@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const HomeTeacher = ({ username, onLogout }) => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log('Signed in as:', username);
+  }, [username]);
 
   return (
     <div style={styles.container}>

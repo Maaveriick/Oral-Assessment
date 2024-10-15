@@ -18,7 +18,7 @@ app.use(cors());
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'maverick',
+  database: 'WRITE YOUR DATABASE NAME',
   password: process.env.DB_PASSWORD,  // Using env variable for DB password
   port: 5432,
 });
@@ -224,8 +224,27 @@ app.put('/topics/:id', upload.single('video'), async (req, res) => {
   }
 });
 
+app.delete('/topics/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // First, delete all questions associated with this topic
+    await pool.query('DELETE FROM questions WHERE topic_id = $1', [id]);
+    // Then delete the topic
+    const deleteTopic = await pool.query('DELETE FROM topic WHERE id = $1 RETURNING *', [id]);
+    if (deleteTopic.rows.length === 0) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+    res.json({ message: 'Topic and associated questions deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
+
 // AI Question Generation
-const generateQuestions = async (description, topicId, ) => {
+const generateQuestions = async (description, topicId, username) => {
   try {
     const chatCompletion = await openai.chat.completions.create({
       messages: [
@@ -238,7 +257,10 @@ const generateQuestions = async (description, topicId, ) => {
     const generatedQuestions = chatCompletion.choices[0].message.content.trim().split('. ');
 
     for (const question of generatedQuestions) {
-      await pool.query('INSERT INTO questions (topic_id, question) VALUES ($1, $2)', [topicId, question.trim()]);
+      await pool.query(
+        'INSERT INTO questions (topic_id, question, username) VALUES ($1, $2, $3)', 
+        [topicId, question.trim(), username]
+      );
     }
   } catch (err) {
     console.error("Error generating questions:", err.message);
@@ -248,10 +270,10 @@ const generateQuestions = async (description, topicId, ) => {
 
 
 app.post('/generate_questions', async (req, res) => {
-  const { description, topicId } = req.body;
+  const { description, topicId, username } = req.body; // Include username
 
   try {
-    await generateQuestions(description, topicId);
+    await generateQuestions(description, topicId, username); // Pass username to the function
     
     // Fetch the newly generated questions from the database
     const questions = await pool.query('SELECT * FROM questions WHERE topic_id = $1', [topicId]);
@@ -261,6 +283,7 @@ app.post('/generate_questions', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
 
 
 
