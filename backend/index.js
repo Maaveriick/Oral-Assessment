@@ -18,7 +18,7 @@ app.use(cors());
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'WRITE YOUR DATABASE NAME',
+  database: 'maverick',
   password: process.env.DB_PASSWORD,  // Using env variable for DB password
   port: 5432,
 });
@@ -242,7 +242,6 @@ app.delete('/topics/:id', async (req, res) => {
 });
 
 
-
 // AI Question Generation
 const generateQuestions = async (description, topicId, username) => {
   try {
@@ -254,14 +253,28 @@ const generateQuestions = async (description, topicId, username) => {
       model: "gpt-4o-mini", // Valid model name
     });
 
-    const generatedQuestions = chatCompletion.choices[0].message.content.trim().split('. ');
+    // Get the generated content
+    const generatedContent = chatCompletion.choices[0].message.content.trim();
+    
+    // Split by new lines and periods, ensuring questions with multiple sentences stay together
+    const questions = generatedContent.split(/\r?\n/).reduce((acc, curr) => {
+      // If the current string is part of a previous question, append it
+      if (acc.length > 0 && !/[.?!]$/.test(acc[acc.length - 1])) {
+        acc[acc.length - 1] += ` ${curr.trim()}`;
+      } else {
+        acc.push(curr.trim());
+      }
+      return acc;
+    }, []);
 
-    for (const question of generatedQuestions) {
+    // Insert each combined question into the database
+    for (const question of questions) {
       await pool.query(
         'INSERT INTO questions (topic_id, question, username) VALUES ($1, $2, $3)', 
         [topicId, question.trim(), username]
       );
     }
+
   } catch (err) {
     console.error("Error generating questions:", err.message);
     throw err;
@@ -269,34 +282,71 @@ const generateQuestions = async (description, topicId, username) => {
 };
 
 
+
+
 app.post('/generate_questions', async (req, res) => {
-  const { description, topicId, username } = req.body; // Include username
+  const { description, topicId, username } = req.body; 
 
   try {
-    await generateQuestions(description, topicId, username); // Pass username to the function
-    
-    // Fetch the newly generated questions from the database
-    const questions = await pool.query('SELECT * FROM questions WHERE topic_id = $1', [topicId]);
-    
-    res.status(200).json({ message: 'Questions generated successfully', questions: questions.rows });
+    // Remove the check for existing questions
+    // Generate new questions regardless of whether previous ones exist
+    await generateQuestions(description, topicId, username);
+
+    // Fetch the newly generated questions
+    const newQuestions = await pool.query('SELECT * FROM questions WHERE topic_id = $1 AND username = $2', [topicId, username]);
+
+    res.status(200).json({ message: 'New questions generated successfully', questions: newQuestions.rows });
   } catch (err) {
+    console.error('Error generating questions:', err.message);
     res.status(500).send('Server error');
   }
 });
 
+// Update an existing question for a specific topic and user
+app.put('/questions/:id', async (req, res) => {
+  const { id } = req.params; // Question ID
+  const { topicId, username, newQuestion } = req.body; // New question content, topic ID, and username
 
-
-
-app.get('/generate_questions', async (req, res) => {
   try {
-    const generate_questions = await pool.query('SELECT * FROM questions');
-    res.json(generate_questions.rows); // Change 'row' to 'rows'
+    // Check if the question exists for the given topic, user, and question ID
+    const existingQuestion = await pool.query(
+      'SELECT * FROM questions WHERE id = $1 AND topic_id = $2 AND username = $3',
+      [id, topicId, username]
+    );
+
+    if (existingQuestion.rows.length === 0) {
+      return res.status(404).json({ message: 'Question not found for the specified topic and user' });
+    }
+
+    // Update the question in the database
+    await pool.query(
+      'UPDATE questions SET question = $1 WHERE id = $2 AND topic_id = $3 AND username = $4',
+      [newQuestion, id, topicId, username]
+    );
+
+    res.json({ message: 'Question updated successfully' });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error updating question:', err.message);
     res.status(500).send('Server error');
   }
 });
 
+// Get existing questions for a specific topic and user
+app.get('/questions', async (req, res) => {
+  const { topicId, username } = req.query; // Extract topicId and username from query parameters
+
+  try {
+    const questions = await pool.query(
+      'SELECT * FROM questions WHERE topic_id = $1 AND username = $2',
+      [topicId, username]
+    );
+
+    res.json(questions.rows);
+  } catch (err) {
+    console.error('Error fetching questions:', err.message);
+    res.status(500).send('Server error');
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

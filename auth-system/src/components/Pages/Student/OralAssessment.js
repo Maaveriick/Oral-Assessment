@@ -32,44 +32,106 @@ const OralAssessmentHome = () => {
     setGeneratedQuestion(''); // Clear previous question when a new topic is selected
   };
 
-  // Handle Start button click
+
+  //Handle Start Button Click
   const handleStartClick = async () => {
     if (selectedTopic) {
       setIsGenerating(true); // Disable the Start button while generating the question
-
+  
       const username = localStorage.getItem('username'); // Retrieve username from localStorage
-
-      // Call the API to generate the question
+  
       try {
-        const response = await fetch(`http://localhost:5000/generate_questions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            description: selectedTopic.description, 
-            topicId: selectedTopic.id, 
-            username // Include username here
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-
-        // Check if questions were generated and set the first one as the generated question
-        if (result.questions && result.questions.length > 0) {
-          setGeneratedQuestion(result.questions[0].question); // Assuming each question object has a 'question' field
+        // Step 1: Check if a question already exists for the selected topic and user
+        const existingResponse = await fetch(`http://localhost:5000/questions?topicId=${selectedTopic.id}&username=${username}`);
+        const existingQuestions = await existingResponse.json();
+  
+        let generatedQuestion;
+  
+        // Step 2: If a question exists, update it; otherwise, generate a new question
+        if (existingQuestions.length > 0) {
+          // Use the existing question ID to update
+          const questionId = existingQuestions[0].id; // Assuming the first question is to be updated
+  
+          // Generate new question
+          const generationResponse = await fetch(`http://localhost:5000/generate_questions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              description: selectedTopic.description, 
+              topicId: selectedTopic.id, 
+              username 
+            }),
+          });
+  
+          if (!generationResponse.ok) {
+            throw new Error(`Error: ${generationResponse.statusText}`);
+          }
+  
+          const generationResult = await generationResponse.json();
+          generatedQuestion = generationResult.questions[0].question; // Get the first generated question
+  
+          // Step 3: Update the existing question in the database
+          await fetch(`http://localhost:5000/questions/${questionId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              topicId: selectedTopic.id,
+              username,
+              newQuestion: generatedQuestion
+            }),
+          });
         } else {
-          console.error('No questions found in the response.');
+          // No existing question found, proceed to generate new questions
+          const generationResponse = await fetch(`http://localhost:5000/generate_questions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              description: selectedTopic.description, 
+              topicId: selectedTopic.id, 
+              username 
+            }),
+          });
+  
+          if (!generationResponse.ok) {
+            throw new Error(`Error: ${generationResponse.statusText}`);
+          }
+  
+          const generationResult = await generationResponse.json();
+          generatedQuestion = generationResult.questions[0].question; // Get the first generated question
+  
+          // Optionally: Save the new question in the database
+          await fetch(`http://localhost:5000/questions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              topicId: selectedTopic.id,
+              username,
+              question: generatedQuestion
+            }),
+          });
         }
+  
+        setGeneratedQuestion(generatedQuestion); // Update state with the generated or updated question
+        setIsGenerating(false); // Re-enable the Start button
+  
       } catch (error) {
-        console.error('Error generating question:', error);
+        console.error('Error generating or updating question:', error);
+        setIsGenerating(false); // Re-enable the Start button even if there's an error
       }
     }
   };
+  
+  
+  
+
 
   return (
     <div className="container-fluid mt-5">

@@ -16,6 +16,7 @@ import OralAssessment from './components/Pages/Student/OralAssessment';
 
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
+    const [loading, setLoading] = useState(true); // Loading state
 
     const handleLoginSuccess = (loggedInUsername, loggedInRole) => {
         setUser({ username: loggedInUsername, role: loggedInRole });
@@ -32,7 +33,13 @@ const App = () => {
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
+        setLoading(false); // Data is now loaded
     }, []);
+
+    // Show a loading message until user data is retrieved
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <Router>
