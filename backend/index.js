@@ -247,10 +247,11 @@ const generateQuestions = async (description, topicId, username) => {
   try {
     const chatCompletion = await openai.chat.completions.create({
       messages: [
-        { role: "system", content: "You are an oral assessment teacher. Generate a thought-provoking question." },
-        { role: "user", content: `Generate an oral assessment question for the topic: ${description}` },
+        { role: "system", content: "You are an oral assessment teacher. Generate an open-ended, thought-provoking question related to the specified topic." },
+        { role: "user", content: `Generate an oral assessment question for the topic: ${description}.` },
       ],
-      model: "gpt-4o-mini", // Valid model name
+      model: "gpt-4o-mini",
+      temperature: 0.3, // Lowering temperature can yield more specific responses
     });
 
     // Get the generated content
@@ -301,6 +302,8 @@ app.post('/generate_questions', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
+
 
 // Update an existing question for a specific topic and user
 app.put('/questions/:id', async (req, res) => {
