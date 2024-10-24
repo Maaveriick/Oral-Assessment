@@ -1,7 +1,7 @@
 // Login.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './Login.css'; // Import the CSS file
+import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
@@ -21,16 +21,16 @@ const Login = ({ onLoginSuccess }) => {
         },
         body: JSON.stringify({ email, password, role }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         const { username, role } = data;
-  
+
         // Store the username in local storage
         localStorage.setItem('username', username); // Save username
-  
+
         onLoginSuccess(username, role); // Pass both username and role to parent
-  
+
         // Navigate based on the role
         if (role === 'Student') {
           navigate('/homestudent');
@@ -52,71 +52,63 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="container">
-      <h2>Login</h2>
+    <div className="container mt-5">
+      <h2 className="mb-4">Login</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
+        <div className="mb-3">
+          <label htmlFor="email" className="form-label">Email:</label>
           <input
             type="email"
+            id="email"
+            className="form-control"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label>Password:</label>
+        <div className="mb-3">
+          <label htmlFor="password" className="form-label">Password:</label>
           <input
             type="password"
+            id="password"
+            className="form-control"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
         {/* Role Dropdown */}
-        <div>
-          <label>Role:</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
+        <div className="mb-3">
+          <label htmlFor="role" className="form-label">Role:</label>
+          <select
+            id="role"
+            className="form-select"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
           </select>
         </div>
 
-        {error && <p className="error">{error}</p>} {/* Display error message */}
-        <button type="submit">Login</button>
+        {error && <div className="alert alert-danger">{error}</div>} {/* Display error message */}
+
+        <button type="submit" className="btn btn-primary w-100">Login</button>
       </form>
 
       {/* Button Container for Forgot Password and Back to Home */}
-      <div style={styles.buttonContainer}>
+      <div className="d-flex justify-content-between mt-4">
         {/* Button to navigate to Forgot Password */}
-        <button className="forgot-password-button" onClick={handleForgotPassword} style={styles.button}>
+        <button className="btn btn-link" onClick={handleForgotPassword}>
           Forgot Password?
         </button>
 
         {/* Back to Home Button */}
-        <Link to="/" style={styles.button}>
+        <Link to="/" className="btn btn-link">
           Back to Home
         </Link>
       </div>
     </div>
   );
-};
-
-// Optional styles for the buttons and container
-const styles = {
-  buttonContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: '20px',
-  },
-  button: {
-    marginRight: '10px', // Space between buttons
-    padding: '10px 20px',
-    backgroundColor: '#1E2761',
-    color: '#fff',
-    textDecoration: 'none',
-    borderRadius: '5px',
-    border: 'none', // Remove default button border
-  },
 };
 
 export default Login;

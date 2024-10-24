@@ -241,47 +241,154 @@ app.delete('/topics/:id', async (req, res) => {
   }
 });
 
+// Create a new feedback
+app.post('/feedbacks', async (req, res) => {
+  const { feedback } = req.body;
+
+  try {
+    await pool.query(
+      'INSERT INTO feedbacks (feedback) VALUES ($1)',
+      [feedback]
+    );
+    res.status(201).json({ message: 'Feedback created successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Create a new feedback
+app.get('/feedbacks/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const feedback = await pool.query('SELECT * FROM feedbacks WHERE id = $1', [id]);
+
+    if (feedback.rows.length === 0) {
+      return res.status(404).json({ message: 'Feedback not found' });
+    }
+
+    res.json(feedback.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
+
+app.get('/feedbacks', async (req, res) => {
+  try {
+    const feedbacks = await pool.query('SELECT * FROM feedbacks');
+    res.json(feedbacks.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
+app.get('/feedbacks/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const feedback = await pool.query('SELECT * FROM feedbacks WHERE id = $1', [id]);
+
+    if (feedback.rows.length === 0) {
+      return res.status(404).json({ message: 'Feedback not found' });
+    }
+
+    res.json(feedback.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
+app.put('/feedbacks/:id', async (req, res) => {
+  const { id } = req.params;
+  const { feedback } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE feedbacks SET feedback = $1 WHERE id = $2',
+      [feedback, id]
+    );
+
+    res.json({ message: 'Feedback updated successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
+app.delete('/feedbacks/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deleteFeedback = await pool.query('DELETE FROM feedbacks WHERE id = $1 RETURNING *', [id]);
+    
+    if (deleteFeedback.rows.length === 0) {
+      return res.status(404).json({ message: 'Feedback not found' });
+    }
+
+    res.json({ message: 'Feedback deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
 
 // AI Question Generation
-const generateQuestions = async (description, topicId, username) => {
+// AI Question Generation
+const generateQuestions = async (topicDescription, topicId, username) => {
   try {
+    // Use the OpenAI API to generate the question
     const chatCompletion = await openai.chat.completions.create({
       messages: [
-        { role: "system", content: "You are an oral assessment teacher. Generate an open-ended, thought-provoking question related to the specified topic." },
-        { role: "user", content: `Generate an oral assessment question for the topic: ${description}.` },
+        {
+          role: "system",
+          content: `
+            You are a teacher conducting an oral assessment. Your task is to generate open-ended and thought-provoking questions
+            that ask for the student's opinion or perspective on a specific topic. The questions should encourage the student
+            to think critically and provide detailed responses. Ensure each question ends with "Why or why not?" as part of the structure.
+            
+            Example questions:
+            - Does making a living as a street artist appeal to you? Why or why not?
+            - Do you think social media benefits us? Why or why not?
+            - Are the cultures of yesteryear being lost in today's fast-paced society? Why or why not?
+            
+            Generate a question related to the following topic: ${description}.
+          `
+        }
       ],
       model: "gpt-4o-mini",
-      temperature: 0.3, // Lowering temperature can yield more specific responses
+      temperature: 0.3, // Lower temperature for more focused responses
     });
-
-    // Get the generated content
-    const generatedContent = chatCompletion.choices[0].message.content.trim();
     
-    // Split by new lines and periods, ensuring questions with multiple sentences stay together
-    const questions = generatedContent.split(/\r?\n/).reduce((acc, curr) => {
-      // If the current string is part of a previous question, append it
-      if (acc.length > 0 && !/[.?!]$/.test(acc[acc.length - 1])) {
-        acc[acc.length - 1] += ` ${curr.trim()}`;
-      } else {
-        acc.push(curr.trim());
-      }
-      return acc;
-    }, []);
+    // Get the generated question from the AI's response
+    let generatedQuestion = chatCompletion.choices[0].message.content.trim();
 
-    // Insert each combined question into the database
-    for (const question of questions) {
-      await pool.query(
-        'INSERT INTO questions (topic_id, question, username) VALUES ($1, $2, $3)', 
-        [topicId, question.trim(), username]
-      );
+    // Ensure the question ends with "Why or why not?" by appending it if necessary
+    if (!generatedQuestion.endsWith('Why or why not?')) {
+      generatedQuestion += ' Why or why not?';
     }
+
+    // Insert the generated question into the database
+    await pool.query(
+      'INSERT INTO questions (topic_id, question, username) VALUES ($1, $2, $3)',
+      [topicId, generatedQuestion, username]
+    );
 
   } catch (err) {
     console.error("Error generating questions:", err.message);
     throw err;
   }
 };
-
 
 
 
@@ -354,4 +461,60 @@ app.get('/questions', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Import any required modules and configurations, such as OpenAI API setup
+
+// Route to handle the AI response (chat)
+app.post('/ai_response', async (req, res) => {
+  const { userResponse, topicId } = req.body; // Get the user response and topicId from the request body
+
+  try {
+    // Fetch the topic description based on the topicId
+    const topic = await pool.query('SELECT description FROM topic WHERE id = $1', [topicId]);
+    const topicDescription = topic.rows[0].description;
+
+    if (!topicDescription) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+    // Create the prompt for the AI based on the user response and topic
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `
+            You are a teacher conducting an oral assessment. Your role is to ask the student open-ended and thought-provoking questions on a variety of topics. 
+            The assessment objectives are for the students to present ideas and opinions fluently and effectively to engage the 
+            listener. They should also engage in a discussion and communicate ideas and opinions clearly. 
+            Use the following example questions as a guide for the type and style of questions you should ask:
+            - What are the advantages or disadvantages of social media?
+            - Learning a foreign language can benefit us. Why or why not?
+            - What are some effects that global warming has on us?
+            Ask a similar question related to the following topic: ${topicDescription}.
+             If the student responds with a short or basic answer, prompt them to elaborate by asking follow-up questions like:
+            - "How so?"
+            - "Can you give examples?"
+            - "Could you explain more?"
+            Use these types of prompts to encourage the student to think more deeply and provide a fuller answer.
+          `
+        },
+        { 
+          role: "user", 
+          content: `The user has responded with: "${userResponse}". Please provide a response related to the topic: ${topicDescription} You need not respond to the students'response. You can just acknowledge by saying 'Ok' for example. `
+        }
+      ],
+      model: "gpt-4o-mini",
+      temperature: 0.7, // Control the creativity of the AI's responses
+    });
+
+    // Extract the AI's generated response from the API
+    const aiReply = chatCompletion.choices[0].message.content.trim();
+
+    // Return the AI's response back to the frontend
+    res.status(200).json({ response: aiReply });
+
+  } catch (err) {
+    console.error('Error generating AI response:', err.message);
+    res.status(500).json({ message: 'Error generating AI response' });
+  }
 });

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -30,20 +31,22 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="container">
-      <h2>Forgot Password</h2>
+    <div className="container mt-5">
+      <h2 className="mb-4">Forgot Password</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email:</label>
+        <div className="mb-3">
+          <label htmlFor="email" className="form-label">Email:</label>
           <input
             type="email"
+            id="email"
+            className="form-control"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        {message && <p className="success">{message}</p>}
-        {error && <p className="error">{error}</p>}
-        <button type="submit">Send Reset Link</button>
+        {message && <div className="alert alert-success">{message}</div>} {/* Display success message */}
+        {error && <div className="alert alert-danger">{error}</div>} {/* Display error message */}
+        <button type="submit" className="btn btn-primary w-100">Send Reset Link</button>
       </form>
     </div>
   );

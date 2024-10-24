@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './Register.css'; // Import the CSS file
+import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 const Register = () => {
   const [username, setUsername] = useState('');
@@ -52,78 +52,68 @@ const Register = () => {
   };
 
   return (
-    <div className="container">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
+    <div className="container mt-5">
+      <h2 className="text-center mb-4">Register</h2>
+      <form onSubmit={handleSubmit} className="border p-4 rounded">
+        <div className="form-group mb-3">
           <label>Username:</label>
           <input
             type="text"
+            className="form-control"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
         </div>
-        <div>
+        <div className="form-group mb-3">
           <label>Email:</label>
           <input
             type="email"
+            className="form-control"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
-        <div>
+        <div className="form-group mb-3">
           <label>Password:</label>
           <input
             type="password"
+            className="form-control"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
 
         {/* Role Selection */}
-        <div>
+        <div className="form-group mb-3">
           <label>Role:</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <select className="form-select" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
           </select>
         </div>
-        {error && <p className="error">{error}</p>} {/* Use the error class */}
-        <button type="submit">Register</button>
+
+        {error && <p className="text-danger">{error}</p>}
+
+        <button type="submit" className="btn btn-primary w-100">Register</button>
       </form>
 
       {/* Button Container for Forgot Password and Back to Home */}
-      <div style={styles.buttonContainer}>
+      <div className="d-flex justify-content-between mt-3">
         {/* Button to navigate to Forgot Password */}
-        <button className="forgot-password-button" onClick={handleForgotPassword} style={styles.button}>
+        <button className="btn btn-link p-0" onClick={handleForgotPassword}>
           Forgot Password?
         </button>
 
         {/* Back to Home Button */}
-        <Link to="/" style={styles.button}>
+        <Link to="/" className="btn btn-link p-0">
           Back to Home
         </Link>
       </div>
     </div>
   );
-};
-
-// Optional styles for the buttons and container
-const styles = {
-  buttonContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: '20px',
-  },
-  button: {
-    marginRight: '10px', // Space between buttons
-    padding: '10px 20px',
-    backgroundColor: '#1E2761',
-    color: '#fff',
-    textDecoration: 'none',
-    borderRadius: '5px',
-    border: 'none', // Remove default button border
-  },
 };
 
 export default Register;

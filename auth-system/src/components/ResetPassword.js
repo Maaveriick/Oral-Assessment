@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -39,50 +40,42 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="container">
-      <h2>Reset Password</h2>
+    <div className="container mt-5">
+      <h2 className="mb-4">Reset Password</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>New Password:</label>
+        <div className="mb-3">
+          <label htmlFor="newPassword" className="form-label">New Password:</label>
           <input
             type="password"
+            id="newPassword"
+            className="form-control"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
-        <div>
-          <label>Confirm Password:</label>
+        <div className="mb-3">
+          <label htmlFor="confirmPassword" className="form-label">Confirm Password:</label>
           <input
             type="password"
+            id="confirmPassword"
+            className="form-control"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
         </div>
-        <button type="submit">Reset Password</button>
+        <button type="submit" className="btn btn-primary w-100">Reset Password</button>
       </form>
-      {message && <p>{message}</p>}
+
+      {message && <div className="alert alert-info mt-3">{message}</div>} {/* Display success/error message */}
 
       {/* Back to Home Button */}
-      <Link to="/" style={styles.backButton}>
+      <Link to="/" className="btn btn-secondary mt-4">
         Back to Home
       </Link>
     </div>
   );
-};
-
-// Optional styles for the back button
-const styles = {
-  backButton: {
-    display: 'inline-block',
-    marginTop: '20px',
-    padding: '10px 20px',
-    backgroundColor: '#1E2761',
-    color: '#fff',
-    textDecoration: 'none',
-    borderRadius: '5px',
-  },
 };
 
 export default ResetPassword;

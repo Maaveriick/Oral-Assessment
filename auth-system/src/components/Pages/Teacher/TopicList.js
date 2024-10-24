@@ -58,74 +58,99 @@ const TopicList = () => {
   };
 
   return (
-    <div className="container-fluid vh-100 d-flex flex-column">
-      <h1 className="mb-4">Topic List</h1>
-      <div className="mb-3">
-        <button className="btn btn-success" onClick={() => navigate('/create-topic')}>
-          Create New Topic
-        </button>
+    <div className="container-fluid vh-100 d-flex">
+      {/* Sidebar */}
+      <div style={{ 
+        backgroundColor: '#343a40', // Dark background
+        color: 'white', // White text
+        width: '200px', 
+        padding: '15px',
+        height: '100vh' // Full height
+      }}>
+        <h5>MyApp</h5>
+        <ul className="nav flex-column">
+          <li className="nav-item">
+            <button 
+              className="nav-link btn btn-link" 
+              style={{ color: 'white' }} // White text for link
+              onClick={() => navigate('/')}
+            >
+              Home
+            </button>
+          </li>
+          {/* Add more nav items as needed */}
+        </ul>
       </div>
-      <div className="overflow-auto">
-        <table id="topicTable" ref={tableRef} className="table table-bordered">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Topic Name</th>
-              <th>Date Created</th>
-              <th>Difficulty</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topics.length === 0 ? (
+
+      <div className="flex-fill p-4">
+        <h1 className="mb-4">Topic List</h1>
+        <div className="mb-3">
+          <button className="btn btn-success" onClick={() => navigate('/create-topic')}>
+            Create New Topic
+          </button>
+        </div>
+        <div className="overflow-auto">
+          <table id="topicTable" ref={tableRef} className="table table-bordered">
+            <thead>
               <tr>
-                <td colSpan="5" className="text-center">
-                  No topics available.
-                </td>
+                <th>ID</th>
+                <th>Topic Name</th>
+                <th>Date Created</th>
+                <th>Difficulty</th>
+                <th>Actions</th>
               </tr>
-            ) : (
-              topics.map((topic) => (
-                <tr key={topic.id}>
-                  <td>{topic.id || 'N/A'}</td>
-                  <td>{topic.topicname || 'N/A'}</td>
-                  <td>
-                    {topic.datecreated
-                      ? new Date(topic.datecreated).toLocaleString() // Show date and time
-                      : 'N/A'}
-                  </td>
-                  <td>{topic.difficulty || 'N/A'}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-primary"
-                        style={{ width: '100px' }}
-                        onClick={() => navigate(`/edit-topic/${topic.id}`)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                      className = "btn btn-warning"
-                      style={{ width: '100px' }}
-                      onClick={() => navigate(`/view-topic/${topic.id}`)}
-                      >
-                      View
-                      </button>
-
-                      <button
-                        className="btn btn-danger"
-                        style={{ width: '100px' }}
-                        onClick={() => deleteTopic(topic.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {topics.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center">
+                    No topics available.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                topics.map((topic) => (
+                  <tr key={topic.id}>
+                    <td>{topic.id || 'N/A'}</td>
+                    <td>{topic.topicname || 'N/A'}</td>
+                    <td>
+                      {topic.datecreated
+                        ? new Date(topic.datecreated).toLocaleString() // Show date and time
+                        : 'N/A'}
+                    </td>
+                    <td>{topic.difficulty || 'N/A'}</td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-primary"
+                          style={{ width: '100px' }}
+                          onClick={() => navigate(`/edit-topic/${topic.id}`)}
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          className="btn btn-warning"
+                          style={{ width: '100px' }}
+                          onClick={() => navigate(`/view-topic/${topic.id}`)}
+                        >
+                          View
+                        </button>
+
+                        <button
+                          className="btn btn-danger"
+                          style={{ width: '100px' }}
+                          onClick={() => deleteTopic(topic.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

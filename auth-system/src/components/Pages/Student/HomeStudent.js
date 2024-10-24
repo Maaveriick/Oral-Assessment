@@ -30,3 +30,4 @@ const HomeStudent = ({ username, onLogout }) => {
 };
 
 export default HomeStudent;
+
