@@ -19,6 +19,7 @@ const ViewTopic = () => {
         }
 
         const data = await response.json();
+        console.log('Fetched topic:', data); // Log the fetched data to inspect its structure
         setTopic(data);
       } catch (error) {
         setError(error.message); // Update error state
@@ -94,6 +95,20 @@ const ViewTopic = () => {
             </div>
           </div>
         )}
+
+        {/* Questions Section */}
+        <div className="mb-3">
+          <label className="form-label">Questions:</label>
+          {topic.questions && topic.questions.length > 0 ? (
+            topic.questions.map((question, index) => (
+              <div key={index} className="form-control mb-2">
+                <h6>{question.text || question}</h6> {/* Adjust based on the actual structure */}
+              </div>
+            ))
+          ) : (
+            <p>No questions available for this topic.</p>
+          )}
+        </div>
 
         {/* Back Button */}
         <div className="mt-4">

@@ -19,7 +19,7 @@ const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
   database: 'maverick',
-  password: process.env.DB_PASSWORD,  // Using env variable for DB password
+  password: process.env.DB_PASSWORD,
   port: 5432,
 });
 
@@ -99,7 +99,7 @@ app.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]); 
 
     if (user.rows.length === 0) {
       return res.status(404).json({ message: 'User with this email does not exist' });
@@ -157,20 +157,22 @@ app.post('/reset-password/:token', async (req, res) => {
 });
 
 // CRUD for Topics
-
-// Create a new topic
+// CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
-  const { topicname, difficulty, description } = req.body;
-  const videoUrl = req.file ? req.file.path : null; // Check if a file was uploaded
+  const { topicname, difficulty, description, questions } = req.body;
+  const videoUrl = req.file ? req.file.path : null;
   const currentDate = new Date().toISOString();
 
   try {
-    await pool.query(
-      'INSERT INTO topic (topicname, difficulty, description, video_url, datecreated) VALUES ($1, $2, $3, $4, $5)',
-      [topicname, difficulty, description, videoUrl, currentDate]
+    // Prepare the questions as an array
+    const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
+
+    const topicResult = await pool.query(
+      'INSERT INTO topic (topicname, difficulty, description, video_url, datecreated, questions) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [topicname, difficulty, description, videoUrl, currentDate, questionsArray]
     );
-    
-    res.status(201).json({ message: 'Topic created successfully' });
+
+    res.status(201).json({ message: 'Topic created successfully with questions' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -205,16 +207,21 @@ app.get('/topics/:id', async (req, res) => {
   }
 });
 
+
+
 app.put('/topics/:id', upload.single('video'), async (req, res) => {
   const { id } = req.params;
-  const { topicname, difficulty, description } = req.body;
+  const { topicname, difficulty, description, questions } = req.body; // Include questions here
   const videoUrl = req.file ? req.file.path : null;
   const currentDate = new Date().toISOString();
 
   try {
+    // Prepare the questions as an array
+    const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
+
     await pool.query(
-      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, video_url = COALESCE($4, video_url), datecreated = $5 WHERE id = $6',
-      [topicname, difficulty, description, videoUrl, currentDate, id]
+      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, video_url = COALESCE($4, video_url), datecreated = $5, questions = $6 WHERE id = $7',
+      [topicname, difficulty, description, videoUrl, currentDate, questionsArray, id]
     );
 
     res.json({ message: 'Topic updated successfully' });
@@ -224,62 +231,39 @@ app.put('/topics/:id', upload.single('video'), async (req, res) => {
   }
 });
 
+
 app.delete('/topics/:id', async (req, res) => {
   const { id } = req.params;
+
   try {
-    // First, delete all questions associated with this topic
-    await pool.query('DELETE FROM questions WHERE topic_id = $1', [id]);
-    // Then delete the topic
-    const deleteTopic = await pool.query('DELETE FROM topic WHERE id = $1 RETURNING *', [id]);
-    if (deleteTopic.rows.length === 0) {
-      return res.status(404).json({ message: 'Topic not found' });
-    }
-    res.json({ message: 'Topic and associated questions deleted successfully' });
+    await pool.query('DELETE FROM topic WHERE id = $1', [id]);
+    res.json({ message: 'Topic deleted successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
 
-// Create a new feedback
+// CRUD for Feedback
 app.post('/feedbacks', async (req, res) => {
-  const { feedback } = req.body;
+  const { feedbackText } = req.body;
 
   try {
-    await pool.query(
-      'INSERT INTO feedbacks (feedback) VALUES ($1)',
-      [feedback]
+    const feedbackResult = await pool.query(
+      'INSERT INTO feedback (feedback_text) VALUES ($1) RETURNING id',
+      [feedbackText]
     );
-    res.status(201).json({ message: 'Feedback created successfully' });
+
+    res.status(201).json({ message: 'Feedback submitted successfully', id: feedbackResult.rows[0].id });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
-
-// Create a new feedback
-app.get('/feedbacks/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const feedback = await pool.query('SELECT * FROM feedbacks WHERE id = $1', [id]);
-
-    if (feedback.rows.length === 0) {
-      return res.status(404).json({ message: 'Feedback not found' });
-    }
-
-    res.json(feedback.rows[0]);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-
 
 app.get('/feedbacks', async (req, res) => {
   try {
-    const feedbacks = await pool.query('SELECT * FROM feedbacks');
+    const feedbacks = await pool.query('SELECT * FROM feedback');
     res.json(feedbacks.rows);
   } catch (err) {
     console.error(err.message);
@@ -287,12 +271,11 @@ app.get('/feedbacks', async (req, res) => {
   }
 });
 
-
 app.get('/feedbacks/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const feedback = await pool.query('SELECT * FROM feedbacks WHERE id = $1', [id]);
+    const feedback = await pool.query('SELECT * FROM feedback WHERE id = $1', [id]);
 
     if (feedback.rows.length === 0) {
       return res.status(404).json({ message: 'Feedback not found' });
@@ -305,15 +288,14 @@ app.get('/feedbacks/:id', async (req, res) => {
   }
 });
 
-
 app.put('/feedbacks/:id', async (req, res) => {
   const { id } = req.params;
-  const { feedback } = req.body;
+  const { feedbackText } = req.body;
 
   try {
     await pool.query(
-      'UPDATE feedbacks SET feedback = $1 WHERE id = $2',
-      [feedback, id]
+      'UPDATE feedback SET feedback_text = $1 WHERE id = $2',
+      [feedbackText, id]
     );
 
     res.json({ message: 'Feedback updated successfully' });
@@ -323,17 +305,11 @@ app.put('/feedbacks/:id', async (req, res) => {
   }
 });
 
-
 app.delete('/feedbacks/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deleteFeedback = await pool.query('DELETE FROM feedbacks WHERE id = $1 RETURNING *', [id]);
-    
-    if (deleteFeedback.rows.length === 0) {
-      return res.status(404).json({ message: 'Feedback not found' });
-    }
-
+    await pool.query('DELETE FROM feedback WHERE id = $1', [id]);
     res.json({ message: 'Feedback deleted successfully' });
   } catch (err) {
     console.error(err.message);
@@ -341,180 +317,32 @@ app.delete('/feedbacks/:id', async (req, res) => {
   }
 });
 
+app.post('/generate-questions', async (req, res) => {
+  const { topicname, description } = req.body;
 
-
-// AI Question Generation
-// AI Question Generation
-const generateQuestions = async (topicDescription, topicId, username) => {
   try {
-    // Use the OpenAI API to generate the question
+    // Constructing the prompt for question generation
+    const prompt = `Generate a unique question for the topic "${topicname}" with the following description: "${description}". Please ensure it's not a repeat question.`;
+
     const chatCompletion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `
-            You are a teacher conducting an oral assessment. Your task is to generate open-ended and thought-provoking questions
-            that ask for the student's opinion or perspective on a specific topic. The questions should encourage the student
-            to think critically and provide detailed responses. Ensure each question ends with "Why or why not?" as part of the structure.
-            
-            Example questions:
-            - Does making a living as a street artist appeal to you? Why or why not?
-            - Do you think social media benefits us? Why or why not?
-            - Are the cultures of yesteryear being lost in today's fast-paced society? Why or why not?
-            
-            Generate a question related to the following topic: ${description}.
-          `
-        }
-      ],
-      model: "gpt-4o-mini",
-      temperature: 0.3, // Lower temperature for more focused responses
-    });
-    
-    // Get the generated question from the AI's response
-    let generatedQuestion = chatCompletion.choices[0].message.content.trim();
-
-    // Ensure the question ends with "Why or why not?" by appending it if necessary
-    if (!generatedQuestion.endsWith('Why or why not?')) {
-      generatedQuestion += ' Why or why not?';
-    }
-
-    // Insert the generated question into the database
-    await pool.query(
-      'INSERT INTO questions (topic_id, question, username) VALUES ($1, $2, $3)',
-      [topicId, generatedQuestion, username]
-    );
-
-  } catch (err) {
-    console.error("Error generating questions:", err.message);
-    throw err;
-  }
-};
-
-
-
-app.post('/generate_questions', async (req, res) => {
-  const { description, topicId, username } = req.body; 
-
-  try {
-    // Remove the check for existing questions
-    // Generate new questions regardless of whether previous ones exist
-    await generateQuestions(description, topicId, username);
-
-    // Fetch the newly generated questions
-    const newQuestions = await pool.query('SELECT * FROM questions WHERE topic_id = $1 AND username = $2', [topicId, username]);
-
-    res.status(200).json({ message: 'New questions generated successfully', questions: newQuestions.rows });
-  } catch (err) {
-    console.error('Error generating questions:', err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-
-
-// Update an existing question for a specific topic and user
-app.put('/questions/:id', async (req, res) => {
-  const { id } = req.params; // Question ID
-  const { topicId, username, newQuestion } = req.body; // New question content, topic ID, and username
-
-  try {
-    // Check if the question exists for the given topic, user, and question ID
-    const existingQuestion = await pool.query(
-      'SELECT * FROM questions WHERE id = $1 AND topic_id = $2 AND username = $3',
-      [id, topicId, username]
-    );
-
-    if (existingQuestion.rows.length === 0) {
-      return res.status(404).json({ message: 'Question not found for the specified topic and user' });
-    }
-
-    // Update the question in the database
-    await pool.query(
-      'UPDATE questions SET question = $1 WHERE id = $2 AND topic_id = $3 AND username = $4',
-      [newQuestion, id, topicId, username]
-    );
-
-    res.json({ message: 'Question updated successfully' });
-  } catch (err) {
-    console.error('Error updating question:', err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-// Get existing questions for a specific topic and user
-app.get('/questions', async (req, res) => {
-  const { topicId, username } = req.query; // Extract topicId and username from query parameters
-
-  try {
-    const questions = await pool.query(
-      'SELECT * FROM questions WHERE topic_id = $1 AND username = $2',
-      [topicId, username]
-    );
-
-    res.json(questions.rows);
-  } catch (err) {
-    console.error('Error fetching questions:', err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Import any required modules and configurations, such as OpenAI API setup
-
-// Route to handle the AI response (chat)
-app.post('/ai_response', async (req, res) => {
-  const { userResponse, topicId } = req.body; // Get the user response and topicId from the request body
-
-  try {
-    // Fetch the topic description based on the topicId
-    const topic = await pool.query('SELECT description FROM topic WHERE id = $1', [topicId]);
-    const topicDescription = topic.rows[0].description;
-
-    if (!topicDescription) {
-      return res.status(404).json({ message: 'Topic not found' });
-    }
-    // Create the prompt for the AI based on the user response and topic
-    const chatCompletion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `
-            You are a teacher conducting an oral assessment. Your role is to ask the student open-ended and thought-provoking questions on a variety of topics. 
-            The assessment objectives are for the students to present ideas and opinions fluently and effectively to engage the 
-            listener. They should also engage in a discussion and communicate ideas and opinions clearly. 
-            Use the following example questions as a guide for the type and style of questions you should ask:
-            - What are the advantages or disadvantages of social media?
-            - Learning a foreign language can benefit us. Why or why not?
-            - What are some effects that global warming has on us?
-            Ask a similar question related to the following topic: ${topicDescription}.
-             If the student responds with a short or basic answer, prompt them to elaborate by asking follow-up questions like:
-            - "How so?"
-            - "Can you give examples?"
-            - "Could you explain more?"
-            Use these types of prompts to encourage the student to think more deeply and provide a fuller answer.
-          `
-        },
-        { 
-          role: "user", 
-          content: `The user has responded with: "${userResponse}". Please provide a response related to the topic: ${topicDescription} You need not respond to the students'response. You can just acknowledge by saying 'Ok' for example. `
-        }
-      ],
-      model: "gpt-4o-mini",
-      temperature: 0.7, // Control the creativity of the AI's responses
+      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4o-mini", // Use your desired model
     });
 
-    // Extract the AI's generated response from the API
-    const aiReply = chatCompletion.choices[0].message.content.trim();
+    // Extracting the generated question
+    const question = chatCompletion.choices[0].message.content;
 
-    // Return the AI's response back to the frontend
-    res.status(200).json({ response: aiReply });
-
-  } catch (err) {
-    console.error('Error generating AI response:', err.message);
-    res.status(500).json({ message: 'Error generating AI response' });
+    // Send the question back in the correct format
+    res.status(200).json({ question });
+  } catch (error) {
+    console.error('Error generating questions:', error.message);
+    res.status(500).json({ error: 'Failed to generate questions. Please try again later.' });
   }
 });
+
+
+// Listening on port 5000
+app.listen(5000, () => {
+  console.log('Server is running on port 5000');
+});
+

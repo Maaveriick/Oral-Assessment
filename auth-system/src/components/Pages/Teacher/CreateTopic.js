@@ -5,9 +5,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const CreateTopic = () => {
   const [topicName, setTopicName] = useState('');
-  const [difficulty, setDifficulty] = useState('Easy'); // Default to 'Easy'
-  const [videoFile, setVideoFile] = useState(null); // State for the uploaded file
-  const [description, setDescription] = useState(''); // State for the description
+  const [difficulty, setDifficulty] = useState('Easy');
+  const [videoFile, setVideoFile] = useState(null);
+  const [description, setDescription] = useState('');
+  const [questions, setQuestions] = useState([{ text: '' }]);
+  const [generatedQuestionsSet, setGeneratedQuestionsSet] = useState(new Set()); // To track unique questions
   const navigate = useNavigate();
 
   const handleCreate = async (e) => {
@@ -16,21 +18,89 @@ const CreateTopic = () => {
     const formData = new FormData();
     formData.append('topicname', topicName);
     formData.append('difficulty', difficulty);
-    formData.append('description', description); // Append the description
+    formData.append('description', description);
     if (videoFile) {
-      formData.append('video', videoFile); // Append the video file
+      formData.append('video', videoFile);
     }
+
+    // Send all questions as an array
+    questions.forEach((question, index) => {
+      if (question.text) {
+        formData.append(`questions[${index}]`, question.text);
+      }
+    });
 
     try {
       await axios.post('http://localhost:5000/topics', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // Important for file upload
+          'Content-Type': 'multipart/form-data',
         },
       });
-      navigate('/crud-topic'); // Redirect back to the topic list after creating the topic
+      navigate('/crud-topic');
     } catch (error) {
       console.error('Error creating topic:', error);
     }
+  };
+
+  const handleQuestionChange = (index, value) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[index].text = value;
+    setQuestions(updatedQuestions);
+  };
+
+  const addQuestion = () => {
+    setQuestions([...questions, { text: '' }]);
+  };
+
+  const removeQuestion = (index) => {
+    const updatedQuestions = questions.filter((_, i) => i !== index);
+    setQuestions(updatedQuestions);
+  };
+
+  // Function to generate questions
+  const generateQuestions = async () => {
+    if (!topicName || !description) {
+      alert('Please enter a topic name and description before generating questions.');
+      return;
+    }
+
+    try {
+      // Call your backend API to generate questions
+      const response = await axios.post('http://localhost:5000/generate-questions', {
+        topicName,
+        description,
+      });
+
+      // Log the entire response to inspect its structure
+      console.log('Response from API:', response.data);
+
+      // Extract the generated question
+      const generatedQuestion = response.data.question; // Adjust based on your API response
+
+      // Check if generatedQuestion is a string and not empty
+      if (typeof generatedQuestion === 'string' && generatedQuestion.trim() !== '') {
+        // Check for duplicates
+        if (!generatedQuestionsSet.has(generatedQuestion)) {
+          setQuestions(prevQuestions => [
+            ...prevQuestions,
+            { text: generatedQuestion },
+          ]);
+          setGeneratedQuestionsSet(prevSet => new Set(prevSet).add(generatedQuestion)); // Add to set
+        } else {
+          alert('This question has already been generated. Please try again.');
+        }
+      } else {
+        console.error('Generated question is not a valid string:', generatedQuestion);
+        alert('Failed to generate questions. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+    }
+  };
+
+  // Function to handle back navigation
+  const handleBack = () => {
+    navigate('/crud-topic');
   };
 
   return (
@@ -66,8 +136,8 @@ const CreateTopic = () => {
             className="form-control"
             rows="4"
             value={description}
-            onChange={(e) => setDescription(e.target.value)} // Update description state
-            required // Optional, remove if you don't want to make it required
+            onChange={(e) => setDescription(e.target.value)}
+            required
           ></textarea>
         </div>
         <div className="mb-3">
@@ -77,13 +147,46 @@ const CreateTopic = () => {
             className="form-control"
             accept="video/*"
             onChange={(e) => setVideoFile(e.target.files[0])}
-            required // Make it optional if you don't want to require a video
           />
         </div>
+        <div className="mb-3">
+          <label className="form-label">Questions:</label>
+          {questions.map((question, index) => (
+            <div key={index} className="input-group mb-2">
+              <input
+                type="text"
+                className="form-control"
+                value={question.text}
+                onChange={(e) => handleQuestionChange(index, e.target.value)}
+                placeholder={`Question ${index + 1}`}
+                required
+              />
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => removeQuestion(index)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          <button type="button" className="btn btn-secondary" onClick={addQuestion}>
+            Add Question
+          </button>
+        </div>
+        <button type="button" className="btn btn-success" onClick={generateQuestions}>
+          Generate Questions
+        </button>
         <button type="submit" className="btn btn-primary">
           Create Topic
         </button>
       </form>
+      <div className="mt-4">
+        <button className="btn btn-secondary" onClick={handleBack}>
+          Back to Topics List
+        </button>
+      </div>
     </div>
   );
 };
