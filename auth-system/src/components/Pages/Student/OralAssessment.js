@@ -31,76 +31,35 @@ const OralAssessmentHome = () => {
   }, []);
 
   // Handle topic selection
-  // Handle topic selection
-const handleTopicSelect = (topic) => {
-  setSelectedTopic(topic);
-  setGeneratedQuestion(''); // Clear previous question when a new topic is selected
-};
-
-// Handle Start Button Click
-const handleStartClick = async () => {
-  if (selectedTopic) {
-    setIsGenerating(true); // Disable the Start button while generating the question
-
-    const username = localStorage.getItem('username'); // Retrieve username from localStorage
+  const handleTopicSelect = async (topic) => {
+    setSelectedTopic(topic);
+    setGeneratedQuestion(''); // Clear previous question when a new topic is selected
 
     try {
-      // Check if a question already exists for the selected topic and user
-      const existingResponse = await fetch(`http://localhost:5000/questions?topicId=${selectedTopic.id}&username=${username}`);
-      const existingQuestions = await existingResponse.json();
+      // Fetch questions for the selected topic from the server
+      const response = await fetch(`http://localhost:5000/topics/${topic.id}`);
+      const topicData = await response.json();
 
-      let generatedQuestion;
-
-      if (existingQuestions.length > 0) {
-        // If a question exists, use the existing one instead of generating a new one
-        generatedQuestion = existingQuestions[0].question;
-
-      } else {
-        // No existing question found, proceed to generate new questions
-        const generationResponse = await fetch(`http://localhost:5000/generate_questions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            description: selectedTopic.description,
-            topicId: selectedTopic.id,
-            username,
-          }),
-        });
-
-        if (!generationResponse.ok) {
-          throw new Error(`Error: ${generationResponse.statusText}`);
-        }
-
-        const generationResult = await generationResponse.json();
-        generatedQuestion = generationResult.questions[0].question;
-
-        // Optionally: Save the new question in the database (no need to check if it already exists)
-        await fetch(`http://localhost:5000/questions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            topicId: selectedTopic.id,
-            username,
-            question: generatedQuestion,
-          }),
-        });
+      if (topicData.questions && topicData.questions.length > 0) {
+        topic.questions = topicData.questions; // Save questions in the selected topic
       }
-
-      // Set the generated question to state
-      setGeneratedQuestion(generatedQuestion); 
-      
     } catch (error) {
-      console.error('Error generating or updating question:', error);
-    } finally {
-      setIsGenerating(false); // Re-enable the Start button even if there's an error
+      console.error('Error fetching topic questions:', error);
     }
-  }
-};
+  };
 
+  // Handle Start Button Click
+  const handleStartClick = () => {
+    if (selectedTopic && selectedTopic.questions && selectedTopic.questions.length > 0) {
+      setIsGenerating(true); // Disable the Start button while displaying the question
+
+      // Randomly select a question from the questions array
+      const randomQuestion = selectedTopic.questions[Math.floor(Math.random() * selectedTopic.questions.length)];
+
+      setGeneratedQuestion(randomQuestion);
+      setIsGenerating(false); // Re-enable the Start button
+    }
+  };
 
   // Handle sending user response in the chat
   const handleSendResponse = async () => {
@@ -147,7 +106,6 @@ const handleStartClick = async () => {
     }
   };
   
-
 
   return (
     <div className="container-fluid mt-5">

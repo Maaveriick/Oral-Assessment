@@ -14,6 +14,7 @@ const EditTopic = () => {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [generatedQuestionsSet, setGeneratedQuestionsSet] = useState(new Set());
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -116,6 +117,39 @@ const EditTopic = () => {
         navigate('/crud-topic');
     };
 
+    // Generate Questions
+    const generateQuestions = async () => {
+        if (!topic.topicname || !topic.description) {
+            alert('Please enter a topic name and description before generating questions.');
+            return;
+        }
+
+        try {
+            const response = await axios.post('http://localhost:5000/generate-questions', {
+                topicName: topic.topicname,
+                description: topic.description,
+            });
+
+            const generatedQuestion = response.data.question;
+
+            if (typeof generatedQuestion === 'string' && generatedQuestion.trim() !== '') {
+                if (!generatedQuestionsSet.has(generatedQuestion)) {
+                    setTopic((prev) => ({
+                        ...prev,
+                        questions: [...prev.questions, generatedQuestion],
+                    }));
+                    setGeneratedQuestionsSet((prevSet) => new Set(prevSet).add(generatedQuestion));
+                } else {
+                    alert('This question has already been generated. Please try again.');
+                }
+            } else {
+                alert('Failed to generate a question. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error generating questions:', error);
+        }
+    };
+
     useEffect(() => {
         return () => {
             if (topic.videoUrl) {
@@ -178,7 +212,7 @@ const EditTopic = () => {
                         className="form-control"
                     />
                 </div>
-                {topic.videoUrl && ( // Display selected video if available
+                {topic.videoUrl && (
                     <div className="mb-3">
                         <h5>Selected Video:</h5>
                         <video width="300" controls>
@@ -203,7 +237,7 @@ const EditTopic = () => {
                             <input
                                 type="text"
                                 className="form-control"
-                                value={question} // Directly use the question here
+                                value={question}
                                 onChange={(e) => handleQuestionChange(index, e.target.value)}
                                 placeholder={`Question ${index + 1}`}
                             />
@@ -211,6 +245,7 @@ const EditTopic = () => {
                         </div>
                     ))}
                     <button type="button" className="btn btn-secondary" onClick={addQuestion}>Add Question</button>
+                    <button type="button" className="btn btn-info mt-2" onClick={generateQuestions}>Generate Question</button>
                 </div>
                 <button type="submit" className="btn btn-primary">Save Changes</button>
                 <button type="button" className="btn btn-secondary" onClick={handleBack}>Back</button>

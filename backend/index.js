@@ -341,6 +341,66 @@ app.post('/generate-questions', async (req, res) => {
 });
 
 
+
+// Route to handle the AI response (chat)
+app.post('/ai_response', async (req, res) => {
+  const { userResponse, topicId } = req.body;
+
+  try {
+    // Fetch the topic description based on the topicId
+    const topic = await pool.query('SELECT description FROM topic WHERE id = $1', [topicId]);
+    const topicDescription = topic.rows[0].description;
+
+    if (!topicDescription) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    // Create the prompt for the AI with specific instructions to generate a question
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `
+            You are a teacher conducting an oral assessment. Your role is to ask the student open-ended, thought-provoking questions about a specific topic.
+            Your objectives are for the student to express ideas fluently, communicate opinions clearly, and engage in discussion. 
+
+            - Start by generating a specific question about the topic: "${topicDescription}".
+            - Make sure the question is relevant, clear, and encourages the student to think deeply. For example, instead of asking a complex question like "Discuss the social implications of media," you could ask, "What do you think is the biggest effect of social media on people?"
+            - If the student responds with confusion or gives a short response, simplify your question to make it more accessible. Rephrase it or provide a simpler version.
+            - Use follow-up prompts to encourage elaboration, such as:
+              - "Can you tell me more about that?"
+              - "What’s an example of that?"
+              - "Could you explain that a bit further?"
+
+            Here are example questions for reference:
+            - Topic: Social Media – "What are the benefits and challenges of using social media?"
+            - Topic: Climate Change – "How do you think climate change affects us or the planet?"
+
+            After each student response, consider if the student has fully understood and answered the question. If they haven't, use simpler language or a follow-up question to encourage a fuller answer.
+          `
+        },
+        {
+          role: "user",
+          content: `The user has responded with: "${userResponse}". Based on this response and the topic: "${topicDescription}", please generate a relevant follow-up question that will either prompt them to elaborate or simplify if they seem uncertain.`
+        }
+      ],
+      model: "gpt-4o-mini",
+      temperature: 0.7, // Adjusts creativity
+    });
+
+    // Extract the AI's generated response (specific question)
+    const aiReply = chatCompletion.choices[0].message.content.trim();
+
+    // Send the AI's response to the frontend
+    res.status(200).json({ response: aiReply });
+
+  } catch (err) {
+    console.error('Error generating AI response:', err.message);
+    res.status(500).json({ message: 'Error generating AI response' });
+  }
+});
+
+
 // Listening on port 5000
 app.listen(5000, () => {
   console.log('Server is running on port 5000');
