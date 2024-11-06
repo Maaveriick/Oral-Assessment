@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk'; // Azure SDK
 
 const OralAssessmentHome = () => {
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false); // Track if generating questions
   const [generatedQuestion, setGeneratedQuestion] = useState(''); // Store the generated question
-
-  // New states for chat functionality
   const [userResponse, setUserResponse] = useState(''); // Store user input
-  const [chatHistory, setChatHistory] = useState([]); // Store chat history (both user and AI responses)
+  const [chatHistory, setChatHistory] = useState([]); // Store chat history
+  const [isListening, setIsListening] = useState(false); // Track if listening
+  const [isActive, setIsActive] = useState(false); // New state to control button activation
 
   // Fetch topics from the API when the component mounts
   useEffect(() => {
@@ -52,6 +53,7 @@ const OralAssessmentHome = () => {
   const handleStartClick = () => {
     if (selectedTopic && selectedTopic.questions && selectedTopic.questions.length > 0) {
       setIsGenerating(true); // Disable the Start button while displaying the question
+      setIsActive(true); // Enable Send and Record buttons
 
       // Randomly select a question from the questions array
       const randomQuestion = selectedTopic.questions[Math.floor(Math.random() * selectedTopic.questions.length)];
@@ -67,12 +69,10 @@ const OralAssessmentHome = () => {
   
     // Add user's response to chat history
     const newChat = [...chatHistory, { sender: 'user', text: userResponse }];
-  
     setChatHistory(newChat); // Update chat history
     setUserResponse(''); // Clear input field
   
     try {
-      // Make API call to get AI's response (replace with your actual AI API)
       const aiResponse = await fetch('http://localhost:5000/ai_response', {
         method: 'POST',
         headers: {
@@ -81,36 +81,46 @@ const OralAssessmentHome = () => {
         body: JSON.stringify({
           topicId: selectedTopic.id,
           userResponse: userResponse,
+          generatedQuestion: generatedQuestion // Include the generated question
         }),
       });
   
-      // Check if the response is okay
       if (!aiResponse.ok) {
         throw new Error(`Error: ${aiResponse.status} ${aiResponse.statusText}`);
       }
   
-      // Try to parse the response as JSON
       const aiResponseData = await aiResponse.json();
-  
-      // Assuming the response contains the AI's reply in a "response" field
       const aiReply = aiResponseData.response;
   
-      // Add AI's response to chat history
       setChatHistory((prevChat) => [...prevChat, { sender: 'ai', text: aiReply }]);
   
     } catch (error) {
       console.error('Error getting AI response:', error);
-  
-      // Show an error message in the chat history
       setChatHistory((prevChat) => [...prevChat, { sender: 'ai', text: 'Error getting response from the server.' }]);
     }
   };
   
+  const handleSpeechInput = async () => {
+    setIsListening(true); // Indicate listening
+
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription("API_KEY", "eastasia");
+    speechConfig.speechRecognitionLanguage = "en-SG";
+    const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+    const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+    recognizer.recognizeOnceAsync(result => {
+      if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+        setUserResponse(result.text);
+      } else {
+        console.error('Speech recognition failed.');
+      }
+      setIsListening(false);
+    });
+  };
 
   return (
     <div className="container-fluid mt-5">
       <div className="row">
-        {/* Sidebar */}
         <div className="col-md-3 bg-light sidebar">
           <div className="p-3">
             <h3>Topics</h3>
@@ -140,7 +150,6 @@ const OralAssessmentHome = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="col-md-9">
           <div className="text-center mb-4">
             <h1>Hi, Welcome!</h1>
@@ -152,7 +161,7 @@ const OralAssessmentHome = () => {
               <>
                 <h2>{selectedTopic.topicname}</h2>
                 <video
-                  key={selectedTopic.id} // Use key to force re-render
+                  key={selectedTopic.id}
                   controls
                   width="600"
                   className="mb-3"
@@ -166,7 +175,6 @@ const OralAssessmentHome = () => {
             )}
           </div>
 
-          {/* Start Button */}
           <div className="d-flex justify-content-end align-items-end" style={{ height: '2%', marginTop: '20px' }}>
             <button
               className="btn btn-primary"
@@ -177,7 +185,6 @@ const OralAssessmentHome = () => {
             </button>
           </div>
 
-          {/* Display Generated Question */}
           {generatedQuestion && (
             <div className="mt-4">
               <h3>Generated Question:</h3>
@@ -185,7 +192,6 @@ const OralAssessmentHome = () => {
             </div>
           )}
 
-          {/* Chat Section */}
           <div className="mt-4">
             <h3>Chat with AI</h3>
             <div className="chat-box" style={{ height: '200px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
@@ -200,7 +206,6 @@ const OralAssessmentHome = () => {
               )}
             </div>
 
-            {/* Input Field for User Response */}
             <div className="input-group mt-3">
               <input
                 type="text"
@@ -208,10 +213,14 @@ const OralAssessmentHome = () => {
                 value={userResponse}
                 onChange={(e) => setUserResponse(e.target.value)}
                 placeholder="Type your response here..."
+                disabled={!isActive} // Disable when isActive is false
               />
               <div className="input-group-append">
-                <button className="btn btn-primary" onClick={handleSendResponse}>
+                <button className="btn btn-primary" onClick={handleSendResponse} disabled={!isActive}>
                   Send
+                </button>
+                <button className="btn btn-secondary" onClick={handleSpeechInput} disabled={!isActive || isListening}>
+                  {isListening ? 'Listening...' : 'Record'}
                 </button>
               </div>
             </div>

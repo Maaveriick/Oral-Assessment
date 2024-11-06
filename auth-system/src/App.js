@@ -14,6 +14,12 @@ import EditTopic from './components/Pages/Teacher/EditTopic';
 import ViewTopic from './components/Pages/Teacher/ViewTopic';
 import OralAssessment from './components/Pages/Student/OralAssessment';
 
+import FeedbackList from './components/Pages/Teacher/FeedbackList';
+import CreateFeedback from './components/Pages/Teacher/CreateFeedback';
+import EditFeedback from './components/Pages/Teacher/EditFeedback';
+import ViewFeedback from './components/Pages/Teacher/ViewFeedback';
+// import Feedback from './components/Pages/Student/Feedback';
+
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
     const [loading, setLoading] = useState(true); // Loading state
@@ -79,11 +85,30 @@ const App = () => {
                         element={user.role === 'Teacher' ? <ViewTopic /> : <Navigate to="/" />}
                     />
 
+<Route
+                        path="/crud-feedback"
+                        element={user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />}
+                    />
+                    <Route
+                        path="/create-feedback"
+                        element={user.role === 'Teacher' ? <CreateFeedback /> : <Navigate to="/" />}
+                    />
+                    <Route
+                        path="/edit-feedback/:id"
+                        element={user.role === 'Teacher' ? <EditFeedback /> : <Navigate to="/" />}
+                    />
+                    <Route
+                        path="/view-feedback/:id"
+                        element={user.role === 'Teacher' ? <ViewFeedback /> : <Navigate to="/" />}
+                    />
+
+
                     {/* Student-specific routes */}
                     <Route 
                         path="/oral-assessment" 
                         element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />} 
                     />
+                      
                 </Routes>
             </div>
         </Router>

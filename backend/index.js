@@ -344,7 +344,7 @@ app.post('/generate-questions', async (req, res) => {
 
 // Route to handle the AI response (chat)
 app.post('/ai_response', async (req, res) => {
-  const { userResponse, topicId } = req.body;
+  const { userResponse, topicId, generatedQuestion } = req.body;
 
   try {
     // Fetch the topic description based on the topicId
@@ -355,43 +355,41 @@ app.post('/ai_response', async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
-    // Create the prompt for the AI with specific instructions to generate a question
+    
     const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
           role: "system",
           content: `
-            You are a teacher conducting an oral assessment. Your role is to ask the student open-ended, thought-provoking questions about a specific topic.
-            Your objectives are for the student to express ideas fluently, communicate opinions clearly, and engage in discussion. 
-
-            - Start by generating a specific question about the topic: "${topicDescription}".
-            - Make sure the question is relevant, clear, and encourages the student to think deeply. For example, instead of asking a complex question like "Discuss the social implications of media," you could ask, "What do you think is the biggest effect of social media on people?"
-            - If the student responds with confusion or gives a short response, simplify your question to make it more accessible. Rephrase it or provide a simpler version.
-            - Use follow-up prompts to encourage elaboration, such as:
+            You are a teacher conducting an oral assessment. Your goal is to ask the student open-ended, thought-provoking questions based on their understanding of the topic.
+            The topic is "${topicDescription}", and the specific question to start with is "${generatedQuestion}".
+    
+            - Start by asking follow-up questions to encourage elaboration or clarification on the student's response. These might include:
               - "Can you tell me more about that?"
               - "What’s an example of that?"
               - "Could you explain that a bit further?"
-
-            Here are example questions for reference:
-            - Topic: Social Media – "What are the benefits and challenges of using social media?"
-            - Topic: Climate Change – "How do you think climate change affects us or the planet?"
-
-            After each student response, consider if the student has fully understood and answered the question. If they haven't, use simpler language or a follow-up question to encourage a fuller answer.
+    
+            - If the student seems uncertain or gives a brief answer, provide simpler or more engaging follow-ups.
+            
+            **Ending the Assessment:**
+            - You should end the assessment politely when the student's response demonstrates a good understanding of the topic. Use polite closure statements such as:
+              - "Thank you for your thoughtful response. This concludes our assessment."
+              - "Great answer! I appreciate your insights. That’s the end of the assessment."
+              - "Thank you, you've done an excellent job explaining. We can finish here."
+            - The key is to assess whether the student's response has sufficiently covered the topic and addressed the question comprehensively. If the response is thorough, you should wrap up the assessment.
+            - Only continue with a follow-up question if there is clear room for further elaboration or if the response was very brief.
           `
         },
         {
           role: "user",
-          content: `The user has responded with: "${userResponse}". Based on this response and the topic: "${topicDescription}", please generate a relevant follow-up question that will either prompt them to elaborate or simplify if they seem uncertain.`
+          content: `The user has responded with: "${userResponse}". Based on this response and the question "${generatedQuestion}", please generate a relevant follow-up question, or conclude the assessment if the response is comprehensive.`
         }
       ],
       model: "gpt-4o-mini",
-      temperature: 0.7, // Adjusts creativity
+      temperature: 0.7, // Adjust creativity level
     });
 
-    // Extract the AI's generated response (specific question)
     const aiReply = chatCompletion.choices[0].message.content.trim();
-
-    // Send the AI's response to the frontend
     res.status(200).json({ response: aiReply });
 
   } catch (err) {
@@ -399,6 +397,7 @@ app.post('/ai_response', async (req, res) => {
     res.status(500).json({ message: 'Error generating AI response' });
   }
 });
+
 
 
 // Listening on port 5000

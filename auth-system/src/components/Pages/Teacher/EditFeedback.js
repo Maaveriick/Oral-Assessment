@@ -30,9 +30,7 @@ const EditFeedback = () => {
         setFeedback({ ...feedback, [name]: value });
     };
 
-    const handleFileChange = (e) => {
-        setFeedback({ ...feedback, video: e.target.files[0] });
-    };
+    
 
     const handleSubmit = async (e) => {
         e.preventDefault();

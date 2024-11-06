@@ -25,6 +25,7 @@ const HomeTeacher = ({ username, onLogout }) => {
         <button
           className="btn btn-primary mx-2"
           style={{ width: '150px' }} // Same width for buttons
+          onClick={() => navigate('/crud-feedback')}
         >
           Student Attempts
         </button>
