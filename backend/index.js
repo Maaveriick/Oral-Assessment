@@ -355,7 +355,6 @@ app.post('/ai_response', async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
-    
     const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
@@ -363,26 +362,27 @@ app.post('/ai_response', async (req, res) => {
           content: `
             You are a teacher conducting an oral assessment. Your goal is to ask the student open-ended, thought-provoking questions based on their understanding of the topic.
             The topic is "${topicDescription}", and the specific question to start with is "${generatedQuestion}".
-    
+
             - Start by asking follow-up questions to encourage elaboration or clarification on the student's response. These might include:
               - "Can you tell me more about that?"
               - "What’s an example of that?"
               - "Could you explain that a bit further?"
-    
-            - If the student seems uncertain or gives a brief answer, provide simpler or more engaging follow-ups.
+
+            - If the student seems uncertain or gives a brief answer, provide simpler or more engaging follow-ups, but be mindful not to push too hard if the student is reluctant to elaborate.
             
             **Ending the Assessment:**
-            - You should end the assessment politely when the student's response demonstrates a good understanding of the topic. Use polite closure statements such as:
-              - "Thank you for your thoughtful response. This concludes our assessment."
-              - "Great answer! I appreciate your insights. That’s the end of the assessment."
-              - "Thank you, you've done an excellent job explaining. We can finish here."
-            - The key is to assess whether the student's response has sufficiently covered the topic and addressed the question comprehensively. If the response is thorough, you should wrap up the assessment.
-            - Only continue with a follow-up question if there is clear room for further elaboration or if the response was very brief.
+            - If the student provides a response that is brief or seems like they are not willing to provide further elaboration, politely end the assessment. 
+            - Here are some polite closure statements you can use:
+              - "Thank you for your thoughts! We’ve covered the main points for today, and this concludes our assessment."
+              - "That’s a great answer! I appreciate your input. This brings us to the end of the assessment."
+              - "Thank you for your response. We’ve covered everything we need, so this will conclude our session."
+            - You do not need to wait for the student to fully cover every aspect of the topic to end the assessment. Instead, assess whether the student's response shows enough effort or interest in the topic. If the response is too brief or the student seems unwilling to continue, feel free to wrap up politely.
+            - Your goal is to ensure the student feels respected and encouraged, regardless of how comprehensive their answer is.
           `
         },
         {
           role: "user",
-          content: `The user has responded with: "${userResponse}". Based on this response and the question "${generatedQuestion}", please generate a relevant follow-up question, or conclude the assessment if the response is comprehensive.`
+          content: `The user has responded with: "${userResponse}". Based on this response and the question "${generatedQuestion}", please generate a relevant follow-up question if the student seems willing to continue, or conclude the assessment politely if the response is brief or indicates a desire to finish.`
         }
       ],
       model: "gpt-4o-mini",

@@ -101,22 +101,40 @@ const OralAssessmentHome = () => {
   };
   
   const handleSpeechInput = async () => {
-    setIsListening(true); // Indicate listening
-
-    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription("API_KEY", "eastasia");
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription("EeA6bETcWe1z5iMKBcm9i4UoQ32HYryQ1YKcsYRVLj4LEwdDwCKZJQQJ99AKAC3pKaRXJ3w3AAAYACOGVLcF", "eastasia");
     speechConfig.speechRecognitionLanguage = "en-SG";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
     const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
-    recognizer.recognizeOnceAsync(result => {
-      if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-        setUserResponse(result.text);
-      } else {
-        console.error('Speech recognition failed.');
+  
+    setIsListening(true);
+  
+    // Handle recognized speech events
+    recognizer.recognized = (s, e) => {
+      if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+        setUserResponse((prevResponse) => `${prevResponse} ${e.result.text}`); // Append new recognized text
       }
+    };
+  
+    // Handle errors
+    recognizer.canceled = (s, e) => {
+      console.error(`Recognition canceled: ${e.errorDetails}`);
       setIsListening(false);
-    });
+      recognizer.stopContinuousRecognitionAsync();
+    };
+  
+    // Start continuous recognition
+    recognizer.startContinuousRecognitionAsync();
+  
+    // Stop recognition on component unmount or when needed
+    const stopRecognition = () => {
+      recognizer.stopContinuousRecognitionAsync(() => setIsListening(false), console.error);
+    };
+  
+    // Optional: stop recognition when a specific condition is met
+    // For example, to stop after a button click, call `stopRecognition` when the button is clicked.
+    return stopRecognition;
   };
+  
 
   return (
     <div className="container-fluid mt-5">
