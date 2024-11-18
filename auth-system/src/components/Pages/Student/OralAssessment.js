@@ -11,6 +11,7 @@ const OralAssessmentHome = () => {
   const [chatHistory, setChatHistory] = useState([]); // Store chat history
   const [isListening, setIsListening] = useState(false); // Track if listening
   const [isActive, setIsActive] = useState(false); // New state to control button activation
+  const [recognizer, setRecognizer] = useState(null); // Store recognizer instance
 
   // Fetch topics from the API when the component mounts
   useEffect(() => {
@@ -66,12 +67,12 @@ const OralAssessmentHome = () => {
   // Handle sending user response in the chat
   const handleSendResponse = async () => {
     if (!userResponse.trim()) return; // Don't allow empty responses
-  
+
     // Add user's response to chat history
     const newChat = [...chatHistory, { sender: 'user', text: userResponse }];
     setChatHistory(newChat); // Update chat history
     setUserResponse(''); // Clear input field
-  
+
     try {
       const aiResponse = await fetch('http://localhost:5000/ai_response', {
         method: 'POST',
@@ -81,60 +82,65 @@ const OralAssessmentHome = () => {
         body: JSON.stringify({
           topicId: selectedTopic.id,
           userResponse: userResponse,
-          generatedQuestion: generatedQuestion // Include the generated question
+          generatedQuestion: generatedQuestion, // Include the generated question
         }),
       });
-  
+
       if (!aiResponse.ok) {
         throw new Error(`Error: ${aiResponse.status} ${aiResponse.statusText}`);
       }
-  
+
       const aiResponseData = await aiResponse.json();
       const aiReply = aiResponseData.response;
-  
+
       setChatHistory((prevChat) => [...prevChat, { sender: 'ai', text: aiReply }]);
-  
     } catch (error) {
       console.error('Error getting AI response:', error);
-      setChatHistory((prevChat) => [...prevChat, { sender: 'ai', text: 'Error getting response from the server.' }]);
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        { sender: 'ai', text: 'Error getting response from the server.' },
+      ]);
     }
   };
-  
+
   const handleSpeechInput = async () => {
-    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription("EeA6bETcWe1z5iMKBcm9i4UoQ32HYryQ1YKcsYRVLj4LEwdDwCKZJQQJ99AKAC3pKaRXJ3w3AAAYACOGVLcF", "eastasia");
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
+      "EeA6bETcWe1z5iMKBcm9i4UoQ32HYryQ1YKcsYRVLj4LEwdDwCKZJQQJ99AKAC3pKaRXJ3w3AAAYACOGVLcF",
+      "eastasia"
+    );
     speechConfig.speechRecognitionLanguage = "en-SG";
     const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-    const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-  
+    const newRecognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+    setRecognizer(newRecognizer); // Save the recognizer instance
     setIsListening(true);
-  
+
     // Handle recognized speech events
-    recognizer.recognized = (s, e) => {
+    newRecognizer.recognized = (s, e) => {
       if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
         setUserResponse((prevResponse) => `${prevResponse} ${e.result.text}`); // Append new recognized text
       }
     };
-  
+
     // Handle errors
-    recognizer.canceled = (s, e) => {
+    newRecognizer.canceled = (s, e) => {
       console.error(`Recognition canceled: ${e.errorDetails}`);
       setIsListening(false);
-      recognizer.stopContinuousRecognitionAsync();
+      newRecognizer.stopContinuousRecognitionAsync();
     };
-  
+
     // Start continuous recognition
-    recognizer.startContinuousRecognitionAsync();
-  
-    // Stop recognition on component unmount or when needed
-    const stopRecognition = () => {
-      recognizer.stopContinuousRecognitionAsync(() => setIsListening(false), console.error);
-    };
-  
-    // Optional: stop recognition when a specific condition is met
-    // For example, to stop after a button click, call `stopRecognition` when the button is clicked.
-    return stopRecognition;
+    newRecognizer.startContinuousRecognitionAsync();
   };
-  
+
+  const handleStopRecording = () => {
+    if (recognizer) {
+      recognizer.stopContinuousRecognitionAsync(() => {
+        setIsListening(false);
+        setRecognizer(null); // Clear recognizer instance
+      });
+    }
+  };
 
   return (
     <div className="container-fluid mt-5">
@@ -184,7 +190,10 @@ const OralAssessmentHome = () => {
                   width="600"
                   className="mb-3"
                 >
-                  <source src={`http://localhost:5000/${selectedTopic.video_url}`} type="video/mp4" />
+                  <source
+                    src={`http://localhost:5000/${selectedTopic.video_url}`}
+                    type="video/mp4"
+                  />
                   Your browser does not support the video tag.
                 </video>
               </>
@@ -212,13 +221,20 @@ const OralAssessmentHome = () => {
 
           <div className="mt-4">
             <h3>Chat with AI</h3>
-            <div className="chat-box" style={{ height: '200px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
+            <div
+              className="chat-box"
+              style={{ height: '200px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}
+            >
               {chatHistory.length === 0 ? (
                 <p>Start a conversation by typing your response below.</p>
               ) : (
                 chatHistory.map((chat, index) => (
-                  <div key={index} className={chat.sender === 'user' ? 'text-right' : 'text-left'}>
-                    <strong>{chat.sender === 'user' ? 'You' : 'AI'}:</strong> {chat.text}
+                  <div
+                    key={index}
+                    className={chat.sender === 'user' ? 'text-right' : 'text-left'}
+                  >
+                    <strong>{chat.sender === 'user' ? 'You' : 'AI'}:</strong>{' '}
+                    {chat.text}
                   </div>
                 ))
               )}
@@ -234,11 +250,26 @@ const OralAssessmentHome = () => {
                 disabled={!isActive} // Disable when isActive is false
               />
               <div className="input-group-append">
-                <button className="btn btn-primary" onClick={handleSendResponse} disabled={!isActive}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSendResponse}
+                  disabled={!isActive}
+                >
                   Send
                 </button>
-                <button className="btn btn-secondary" onClick={handleSpeechInput} disabled={!isActive || isListening}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleSpeechInput}
+                  disabled={!isActive || isListening} // Disable when already listening
+                >
                   {isListening ? 'Listening...' : 'Record'}
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleStopRecording}
+                  disabled={!isListening} // Enable only when listening
+                >
+                  Stop Recording
                 </button>
               </div>
             </div>
