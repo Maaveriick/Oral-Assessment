@@ -45,6 +45,8 @@ const TopicList = () => {
     }
   }, [topics]);
 
+  
+
   const deleteTopic = async (id) => {
     try {
       const confirmDelete = window.confirm('Are you sure you want to delete this topic?');

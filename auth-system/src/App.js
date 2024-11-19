@@ -18,11 +18,12 @@ import FeedbackList from './components/Pages/Teacher/FeedbackList';
 import CreateFeedback from './components/Pages/Teacher/CreateFeedback';
 import EditFeedback from './components/Pages/Teacher/EditFeedback';
 import ViewFeedback from './components/Pages/Teacher/ViewFeedback';
-// import Feedback from './components/Pages/Student/Feedback';
+import StudentDetails from './components/Pages/Teacher/StudentDetails';
+import AttemptsPage from './components/Pages/Teacher/AttemptsPage';
 
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
-    const [loading, setLoading] = useState(true); // Loading state
+    const [loading, setLoading] = useState(true);
 
     const handleLoginSuccess = (loggedInUsername, loggedInRole) => {
         setUser({ username: loggedInUsername, role: loggedInRole });
@@ -39,10 +40,9 @@ const App = () => {
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
-        setLoading(false); // Data is now loaded
+        setLoading(false);
     }, []);
 
-    // Show a loading message until user data is retrieved
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -85,14 +85,17 @@ const App = () => {
                         element={user.role === 'Teacher' ? <ViewTopic /> : <Navigate to="/" />}
                     />
 
-<Route
+                    {/* Feedback management routes */}
+                    <Route
                         path="/crud-feedback"
                         element={user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />}
                     />
-                    <Route
-                        path="/create-feedback"
-                        element={user.role === 'Teacher' ? <CreateFeedback /> : <Navigate to="/" />}
+                    
+                    <Route 
+                    path="/create-feedback/:username/:topicId/:attempt_count" 
+                    element={<CreateFeedback />} 
                     />
+
                     <Route
                         path="/edit-feedback/:id"
                         element={user.role === 'Teacher' ? <EditFeedback /> : <Navigate to="/" />}
@@ -102,13 +105,19 @@ const App = () => {
                         element={user.role === 'Teacher' ? <ViewFeedback /> : <Navigate to="/" />}
                     />
 
-
                     {/* Student-specific routes */}
-                    <Route 
-                        path="/oral-assessment" 
-                        element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />} 
+                    <Route
+                        path="/oral-assessment"
+                        element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />}
                     />
-                      
+                    <Route
+                        path="/student-details/:id"
+                        element={user.role === 'Teacher' ? <StudentDetails /> : <Navigate to="/" />}
+                    />
+                    <Route
+                        path="/attempts/:username/:topicId"
+                        element={user.role === 'Teacher' ? <AttemptsPage /> : <Navigate to="/" />}
+                    />
                 </Routes>
             </div>
         </Router>

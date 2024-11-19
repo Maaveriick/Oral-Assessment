@@ -142,6 +142,41 @@ const OralAssessmentHome = () => {
     }
   };
 
+  const handleEndSession = async () => {
+    const username = localStorage.getItem('username'); // Retrieve the username from localStorage
+    const sessionData = {
+      username,
+      topicId: selectedTopic.id,
+      generatedQuestion,
+      responses: chatHistory,
+      datetime: new Date().toISOString(),
+    };
+  
+    try {
+      const response = await fetch('http://localhost:5000/end_session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sessionData),
+      });
+  
+      if (response.ok) {
+        alert('Session data saved successfully.');
+        setChatHistory([]);
+        setGeneratedQuestion('');
+        setSelectedTopic(null);
+      } else {
+        console.error('Failed to save session:', response.statusText);
+        alert('Failed to save session.');
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+      alert('An error occurred while saving the session.');
+    }
+  };
+  
+
   return (
     <div className="container-fluid mt-5">
       <div className="row">
@@ -201,17 +236,25 @@ const OralAssessmentHome = () => {
               <p>Please select a topic to start.</p>
             )}
           </div>
-
-          <div className="d-flex justify-content-end align-items-end" style={{ height: '2%', marginTop: '20px' }}>
-            <button
-              className="btn btn-primary"
-              onClick={handleStartClick}
-              disabled={isGenerating || !selectedTopic}
-            >
-              {isGenerating ? 'Generating...' : 'Start'}
-            </button>
-          </div>
-
+          <div
+          className="d-flex justify-content-end align-items-center"
+          style={{ marginTop: '20px' }}
+        >
+          <button
+            className="btn btn-primary me-2" // Add margin-end (me-2) for spacing
+            onClick={handleStartClick}
+            disabled={isGenerating || !selectedTopic}
+          >
+            {isGenerating ? 'Generating...' : 'Start'}
+          </button>
+          <button
+            className="btn btn-warning"
+            onClick={handleEndSession}
+            disabled={!selectedTopic || chatHistory.length === 0 || !generatedQuestion}
+          >
+            End Session
+          </button>
+        </div>
           {generatedQuestion && (
             <div className="mt-4">
               <h3>Generated Question:</h3>

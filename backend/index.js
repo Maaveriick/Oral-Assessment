@@ -156,6 +156,33 @@ app.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// Endpoint to get all student usernames
+app.get('/students', async (req, res) => {
+  try {
+    const students = await pool.query('SELECT id, username FROM users WHERE role = $1', ['Student']);
+    res.status(200).json(students.rows); // Send student data as JSON
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+app.get('/students/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const student = await pool.query('SELECT id, username FROM users WHERE id = $1', [id]);
+    if (student.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.status(200).json(student.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+
 // CRUD for Topics
 // CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
@@ -246,17 +273,22 @@ app.delete('/topics/:id', async (req, res) => {
 
 // CRUD for Feedback
 app.post('/feedbacks', async (req, res) => {
-  const { feedbackText } = req.body;
+  const { username, teacher_username, topicId, attempt_count, feedback } = req.body; // Get both student and teacher usernames
+
+  // Check if all required fields are provided
+  if (!teacher_username || !username || !feedback) {
+    return res.status(400).send('Teacher username, student username, and feedback are required');
+  }
 
   try {
-    const feedbackResult = await pool.query(
-      'INSERT INTO feedback (feedback_text) VALUES ($1) RETURNING id',
-      [feedbackText]
+    // Insert feedback into the database with both teacher and student usernames
+    await pool.query(
+      'INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text) VALUES ($1, $2, $3, $4, $5)',
+      [username, teacher_username, topicId, attempt_count, feedback] // Use teacher_username here
     );
-
-    res.status(201).json({ message: 'Feedback submitted successfully', id: feedbackResult.rows[0].id });
-  } catch (err) {
-    console.error(err.message);
+    res.status(200).send('Feedback created successfully');
+  } catch (error) {
+    console.error('Error creating feedback:', error);
     res.status(500).send('Server error');
   }
 });
@@ -397,6 +429,90 @@ app.post('/ai_response', async (req, res) => {
     res.status(500).json({ message: 'Error generating AI response' });
   }
 });
+
+
+// Chat Logs
+app.post('/end_session', async (req, res) => {
+  const { username, topicId, generatedQuestion, responses, datetime } = req.body;
+
+  try {
+    const client = await pool.connect();
+
+    // Fetch the current attempt count for this user and topic
+    const result = await client.query(
+      `SELECT MAX(attempt_count) AS max_attempts 
+       FROM assessment_sessions 
+       WHERE username = $1 AND topic_id = $2`,
+      [username, topicId]
+    );
+    const currentAttempts = result.rows[0]?.max_attempts || 0;
+
+    // Insert the session with incremented attempt count
+    await client.query(
+      `INSERT INTO assessment_sessions (username, topic_id, question, responses, datetime, attempt_count)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1]
+    );
+
+    client.release();
+    res.status(200).send({ message: 'Session data saved successfully.' });
+  } catch (error) {
+    console.error('Error saving session data:', error);
+    res.status(500).send({ error: 'Failed to save session data.' });
+  }
+});
+
+app.post('/attempts', async (req, res) => {
+  const { username, topicId } = req.body;
+
+  try {
+    const client = await pool.connect();
+
+    // Fetch only attempt count and datetime
+    const result = await client.query(
+      `SELECT attempt_count, datetime 
+       FROM assessment_sessions 
+       WHERE username = $1 AND topic_id = $2 
+       ORDER BY attempt_count ASC`,
+      [username, topicId]
+    );
+
+    client.release();
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching attempts:', error);
+    res.status(500).send({ error: 'Failed to fetch attempts.' });
+  }
+});
+
+app.post('/get_attempt_details', async (req, res) => {
+  const { username, topicId, attempt_count } = req.body;
+
+  try {
+    const client = await pool.connect();
+
+    // Fetch details for a specific attempt
+    const result = await client.query(
+      `SELECT question, responses, datetime 
+       FROM assessment_sessions 
+       WHERE username = $1 AND topic_id = $2 AND attempt_count = $3`,
+      [username, topicId, attempt_count]
+    );
+
+    client.release();
+
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows[0]); // Send the specific attempt details
+    } else {
+      res.status(404).json({ error: 'Attempt not found.' });
+    }
+  } catch (error) {
+    console.error('Error fetching attempt details:', error);
+    res.status(500).send({ error: 'Failed to fetch attempt details.' });
+  }
+});
+
+
 
 
 // Listening on port 5000

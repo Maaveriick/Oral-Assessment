@@ -8,17 +8,27 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const FeedbackList = () => {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const navigate = useNavigate();
+  const [students, setStudents] = useState([]);
   const tableRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Function to fetch topics
-  const fetchFeedbacks = async () => {
+  // Fetch the logged-in user's data from localStorage
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user')); // Retrieve user data from localStorage
+    if (user) {
+      console.log('Logged in as:', user.username); // Log the logged-in user's username to the console
+    } else {
+      console.log('No user logged in');
+    }
+  }, []); // Empty dependency array means this effect runs only once when the component mounts
+
+  // Function to fetch students
+  const fetchStudents = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/feedbacks');
-      setFeedbacks(response.data);
+      const response = await axios.get('http://localhost:5000/students');
+      setStudents(response.data);
     } catch (error) {
-      console.error('Error fetching feedbacks:', error);
+      console.error('Error fetching students:', error);
     }
   };
 
@@ -36,90 +46,46 @@ const FeedbackList = () => {
   };
 
   useEffect(() => {
-    fetchFeedbacks(); // Fetch topics on component mount
+    fetchStudents(); // Fetch students on component mount
   }, []);
 
   useEffect(() => {
-    if (feedbacks.length) {
+    if (students.length) {
       initializeDataTable();
     }
-  }, [feedbacks]);
-
-  const deleteFeedback = async (id) => {
-    try {
-      const confirmDelete = window.confirm('Are you sure you want to delete this feedback?');
-      if (confirmDelete) {
-        await axios.delete(`http://localhost:5000/feedbacks/${id}`);
-        setFeedbacks((prevFeedbacks) => prevFeedbacks.filter((feedback) => feedback.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting feedback:', error);
-    }
-  };
+  }, [students]);
 
   return (
     <div className="container-fluid vh-100 d-flex flex-column">
-      <h1 className="mb-4">Feedback List</h1>
-      <div className="mb-3">
-        <button className="btn btn-success" onClick={() => navigate('/create-feedback')}>
-          Create New Feedback
-        </button>
-      </div>
+      <h1 className="mb-4">Students List</h1>
       <div className="overflow-auto">
-        <table id="topicTable" ref={tableRef} className="table table-bordered">
+        <table id="studentTable" ref={tableRef} className="table table-bordered">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Student Name</th>
-              <th>Date Attempted</th>
-              <th>Attempts</th>
+              <th>Username</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {feedbacks.length === 0 ? (
+            {students.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center">
-                  No feedbacks available.
+                <td colSpan="3" className="text-center">
+                  No students available.
                 </td>
               </tr>
             ) : (
-              feedbacks.map((feedback) => (
-                <tr key={feedback.id}>
-                  <td>{feedback.id || 'N/A'}</td>
-                  <td>{feedback.studentname || 'N/A'}</td>
+              students.map((student) => (
+                <tr key={student.id}>
+                  <td>{student.id}</td>
+                  <td>{student.username}</td>
                   <td>
-                    {feedback.dateattempted
-                      ? new Date(feedback.dateattempted).toLocaleString() // Show date and time
-                      : 'N/A'}
-                  </td>
-                  <td>{feedback.attempts || 'N/A'}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-primary"
-                        style={{ width: '100px' }}
-                        onClick={() => navigate(`/edit-feedback/${feedback.id}`)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                      className = "btn btn-warning"
-                      style={{ width: '100px' }}
-                      onClick={() => navigate(`/view-topic/${feedback.id}`)}
-                      >
-                      View
-                      </button>
-
-                      <button
-                        className="btn btn-danger"
-                        style={{ width: '100px' }}
-                        onClick={() => deleteFeedback(feedback.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/student-details/${student.id}`)}
+                    >
+                      View Details
+                    </button>
                   </td>
                 </tr>
               ))
