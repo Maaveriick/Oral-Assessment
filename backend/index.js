@@ -183,6 +183,8 @@ app.get('/students/:id', async (req, res) => {
 });
 
 
+
+
 // CRUD for Topics
 // CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
@@ -350,20 +352,28 @@ app.put('/feedbacks/update', async (req, res) => {
   }
 });
 
+app.delete('/feedbacks', async (req, res) => {
+  const { username, topicId, attempt_count } = req.body;
 
-
-app.delete('/feedbacks/:id', async (req, res) => {
-  const { id } = req.params;
+  if (!username || !topicId || !attempt_count) {
+    return res.status(400).send('Username, topic ID, and attempt count are required');
+  }
 
   try {
-    await pool.query('DELETE FROM feedback WHERE id = $1', [id]);
-    res.json({ message: 'Feedback deleted successfully' });
+    // Only delete feedback related to the specific attempt
+    await pool.query(
+      `DELETE FROM feedback 
+       WHERE username = $1 AND topic_id = $2 AND attempt_count = $3`,
+      [username, topicId, attempt_count]
+    );
+    res.status(200).json({ message: 'Feedback deleted successfully' });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error deleting feedback:', err.message);
     res.status(500).send('Server error');
   }
 });
 
+//Generate Question
 app.post('/generate-questions', async (req, res) => {
   const { topicname, description } = req.body;
 

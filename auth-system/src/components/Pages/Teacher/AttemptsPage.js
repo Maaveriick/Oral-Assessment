@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import $ from 'jquery';
+import 'datatables.net';
+import 'datatables.net-bs5';
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const AttemptsPage = () => {
   const { username, topicId } = useParams();
   const [attempts, setAttempts] = useState([]);
+  const tableRef = useRef(null);
   const navigate = useNavigate();
 
   // Fetch attempts on mount
@@ -24,13 +30,41 @@ const AttemptsPage = () => {
     fetchAttempts();
   }, [username, topicId]);
 
-  // Delete an attempt using `attempt_count`
-  const deleteAttempt = async (attempt_count) => {
+  // Initialize DataTable
+  useEffect(() => {
+    if (attempts.length) {
+      if ($.fn.DataTable.isDataTable(tableRef.current)) {
+        $(tableRef.current).DataTable().destroy();
+      }
+      $(tableRef.current).DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        info: true,
+      });
+    }
+  }, [attempts]);
+
+  // Delete feedback using `attempt_count`
+  const deleteFeedback = async (username, topicId, attempt_count) => {
     try {
-      await axios.delete(`http://localhost:5000/attempts/${attempt_count}`);
-      setAttempts(attempts.filter((attempt) => attempt.attempt_count !== attempt_count));
+      await axios.delete('http://localhost:5000/feedbacks', {
+        data: { username, topicId, attempt_count },
+      });
+
+      // Update UI to reflect feedback deletion
+      const updatedAttempts = attempts.map((attempt) =>
+        attempt.attempt_count === attempt_count
+          ? { ...attempt, feedbackExists: false }
+          : attempt
+      );
+
+      setAttempts(updatedAttempts);
+
+      // Show success popup
+      alert('Feedback successfully deleted.');
     } catch (error) {
-      console.error('Error deleting attempt:', error);
+      console.error('Error deleting feedback:', error);
     }
   };
 
@@ -45,33 +79,87 @@ const AttemptsPage = () => {
   }, []);
 
   return (
-    <div className="container mt-5">
-      <h1>Attempts for {username} on Topic ID: {topicId}</h1>
+    <div className="d-flex">
+      {/* Sidebar */}
+      <div
+        style={{
+          backgroundColor: '#343a40', // Dark background
+          color: 'white', // White text
+          width: '250px', // Sidebar width
+          padding: '15px',
+          height: '100vh', // Full height
+          position: 'fixed', // Fix sidebar on the left
+          top: 0,
+          left: 0,
+        }}
+      >
+        <h5>MyApp</h5>
+        <ul className="nav flex-column">
+          <li className="nav-item">
+            <button
+              className="nav-link btn btn-link"
+              style={{ color: 'white' }} // White text for link
+              onClick={() => navigate('/')} // Navigate to home on click
+            >
+              Home
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link btn btn-link"
+              style={{ color: 'white' }} // White text for link
+              onClick={() => navigate('/crud-feedback')} // Navigate to feedback list
+            >
+              Student List
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link btn btn-link"
+              style={{ color: 'white' }} // White text for link
+              onClick={() => navigate('/crud-topic')} // Navigate to feedback list
+            >
+              Topic List
+            </button>
+          </li>
+        </ul>
+      </div>
 
-      <table className="table table-bordered">
-        <thead>
-          <tr>
-            <th>Attempt Number</th>
-            <th>Date and Time</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {attempts.length === 0 ? (
+      {/* Main content */}
+      <div
+        className="container mt-5"
+        style={{ marginLeft: '270px', width: 'calc(100% - 270px)' }} // Add left margin for the sidebar
+      >
+        <h1>Attempts for {username} on Topic ID: {topicId}</h1>
+
+        <table
+          id="attemptsTable"
+          ref={tableRef}
+          className="table table-bordered table-striped"
+        >
+          <thead>
             <tr>
-              <td colSpan="3" className="text-center">
-                No attempts found.
-              </td>
+              <th>Attempt Number</th>
+              <th>Date and Time</th>
+              <th>Actions</th>
             </tr>
-          ) : (
-            attempts.map((attempt) => (
-              <tr key={attempt.attempt_count}>
-                <td>{attempt.attempt_count}</td>
-                <td>{new Date(attempt.datetime).toLocaleString()}</td>
-                <td>
-                  <div className="d-flex gap-2">
-                  <button
-                        className="btn btn-secondary"
+          </thead>
+          <tbody>
+            {attempts.length === 0 ? (
+              <tr>
+                <td colSpan="3" className="text-center">
+                  No attempts found.
+                </td>
+              </tr>
+            ) : (
+              attempts.map((attempt) => (
+                <tr key={attempt.attempt_count}>
+                  <td>{attempt.attempt_count}</td>
+                  <td>{new Date(attempt.datetime).toLocaleString()}</td>
+                  <td>
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-warning"
                         style={{ width: '140px' }}
                         onClick={() =>
                           navigate(`/edit-feedback/${username}/${topicId}/${attempt.attempt_count}`)
@@ -81,7 +169,7 @@ const AttemptsPage = () => {
                       </button>
 
                       <button
-                        className="btn btn-warning"
+                        className="btn btn-secondary"
                         style={{ width: '100px' }}
                         onClick={() =>
                           navigate(`/view-feedback/${username}/${topicId}/${attempt.attempt_count}`)
@@ -90,30 +178,31 @@ const AttemptsPage = () => {
                         View
                       </button>
 
-                    <button
-                      className="btn btn-success"
-                      style={{ width: '140px' }}
-                      onClick={() =>
-                        navigate(`/create-feedback/${username}/${topicId}/${attempt.attempt_count}`)
-                      }
-                    >
-                      Create Feedback
-                    </button>
+                      <button
+                        className="btn btn-success"
+                        style={{ width: '140px' }}
+                        onClick={() =>
+                          navigate(`/create-feedback/${username}/${topicId}/${attempt.attempt_count}`)
+                        }
+                      >
+                        Create Feedback
+                      </button>
 
-                    <button
-                      className="btn btn-danger"
-                      style={{ width: '100px' }}
-                      onClick={() => deleteAttempt(attempt.attempt_count)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+                      <button
+                        className="btn btn-danger"
+                        style={{ width: '140px' }}
+                        onClick={() => deleteFeedback(username, topicId, attempt.attempt_count)}
+                      >
+                        Delete Feedback
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -81,6 +81,15 @@ const TopicList = () => {
             </button>
           </li>
           {/* Add more nav items as needed */}
+          <li className="nav-item">
+            <button
+              className="nav-link btn btn-link"
+              style={{ color: 'white' }} // White text for link
+              onClick={() => navigate('/crud-feedback')} // Navigate to feedback list
+            >
+              Student List
+            </button>
+          </li>
         </ul>
       </div>
 

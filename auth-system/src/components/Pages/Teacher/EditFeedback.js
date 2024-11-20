@@ -75,54 +75,69 @@ const EditFeedback = () => {
         feedback_text,
       });
   
-      navigate('/crud-feedback'); // Redirect after update
+      navigate(`/attempts/${username}/${topicId}`);
     } catch (error) {
       console.error('Error updating feedback:', error);
     }
   };
-  
 
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
-        <div className="col-md-8 col-lg-6">
+        <div className="col-md-10">
           <div className="card shadow-lg border-light">
             <div className="card-body">
               <h2 className="text-center mb-4 text-primary">Edit Feedback for Attempt #{attempt_count}</h2>
-              {attemptDetails ? (
-                <>
-                  <div className="mb-4">
-                    <h5 className="text-info">Generated Question:</h5>
-                    <p>{attemptDetails.question}</p>
-                  </div>
-                  <div className="mb-4">
-                    <h5 className="text-info">Responses:</h5>
-                    <ul className="list-group">
-                      {attemptDetails.responses.map((response, index) => (
-                        <li key={index} className="list-group-item">
-                          <strong>{response.sender}:</strong> {response.text}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              ) : (
-                <p className="text-muted">Loading attempt details...</p>
-              )}
-              <form onSubmit={handleUpdate}>
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="feedbackTextarea">Feedback:</label>
-                  <textarea
-                    id="feedbackTextarea"
-                    className="form-control"
-                    value={feedback_text}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    rows="4"
-                    required
-                  ></textarea>
+              <div className="row">
+                {/* Left Side: Attempt Details */}
+                <div className="col-md-6">
+                  {attemptDetails ? (
+                    <>
+                      <div className="mb-4">
+                        <h5 className="text-info">Generated Question:</h5>
+                        <p>{attemptDetails.question}</p>
+                      </div>
+                      <div className="mb-4">
+                        <h5 className="text-info">Responses:</h5>
+                        <ul className="list-group">
+                          {attemptDetails.responses.map((response, index) => (
+                            <li key={index} className="list-group-item">
+                              <strong>{response.sender}:</strong> {response.text}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted">Loading attempt details...</p>
+                  )}
                 </div>
-                <button type="submit" className="btn btn-primary w-100">Update Feedback</button>
-              </form>
+
+                {/* Right Side: Feedback Form */}
+                <div className="col-md-6">
+                  <form onSubmit={handleUpdate}>
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="feedbackTextarea">Feedback:</label>
+                      <textarea
+                        id="feedbackTextarea"
+                        className="form-control"
+                        value={feedback_text}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        rows="4"
+                        required
+                      ></textarea>
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100">Update Feedback</button>
+                    
+                  </form>
+                </div>
+                <button
+                className="btn btn-secondary w-100"
+                onClick={() => navigate(-1)} // Navigate back to the previous page
+              >
+                Back
+              </button>
+              </div>
             </div>
           </div>
         </div>
