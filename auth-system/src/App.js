@@ -13,6 +13,7 @@ import CreateTopic from './components/Pages/Teacher/CreateTopic';
 import EditTopic from './components/Pages/Teacher/EditTopic';
 import ViewTopic from './components/Pages/Teacher/ViewTopic';
 import OralAssessment from './components/Pages/Student/OralAssessment';
+import RubricsPage from './components/Pages/Teacher/RubricsPage';  // Import the RubricsPage component
 
 import FeedbackList from './components/Pages/Teacher/FeedbackList';
 import CreateFeedback from './components/Pages/Teacher/CreateFeedback';
@@ -68,55 +69,24 @@ const App = () => {
                     />
 
                     {/* Topic management routes for teachers */}
-                    <Route
-                        path="/crud-topic"
-                        element={user.role === 'Teacher' ? <TopicList /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/create-topic"
-                        element={user.role === 'Teacher' ? <CreateTopic /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/edit-topic/:id"
-                        element={user.role === 'Teacher' ? <EditTopic /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/view-topic/:id"
-                        element={user.role === 'Teacher' ? <ViewTopic /> : <Navigate to="/" />}
-                    />
+                    <Route path="/crud-topic" element={user.role === 'Teacher' ? <TopicList /> : <Navigate to="/" />} />
+                    <Route path="/create-topic" element={user.role === 'Teacher' ? <CreateTopic /> : <Navigate to="/" />} />
+                    <Route path="/edit-topic/:id" element={user.role === 'Teacher' ? <EditTopic /> : <Navigate to="/" />} />
+                    <Route path="/view-topic/:id" element={user.role === 'Teacher' ? <ViewTopic /> : <Navigate to="/" />} />
 
                     {/* Feedback management routes */}
-                    <Route
-                        path="/crud-feedback"
-                        element={user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />}
-                    />
-                    
-                    <Route 
-                    path="/create-feedback/:username/:topicId/:attempt_count" 
-                    element={<CreateFeedback />} 
-                    />
-
-                    <Route 
-                    path="/edit-feedback/:username/:topicId/:attempt_count" 
-                    element={<EditFeedback />} />
-
-                    <Route 
-                    path="/view-feedback/:username/:topicId/:attempt_count" 
-                    element={<ViewFeedback />} />  
+                    <Route path="/crud-feedback" element={user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />} />
+                    <Route path="/create-feedback/:username/:topicId/:attempt_count" element={<CreateFeedback />} />
+                    <Route path="/edit-feedback/:username/:topicId/:attempt_count" element={<EditFeedback />} />
+                    <Route path="/view-feedback/:username/:topicId/:attempt_count" element={<ViewFeedback />} />
 
                     {/* Student-specific routes */}
-                    <Route
-                        path="/oral-assessment"
-                        element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/student-details/:id"
-                        element={user.role === 'Teacher' ? <StudentDetails /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/attempts/:username/:topicId"
-                        element={user.role === 'Teacher' ? <AttemptsPage /> : <Navigate to="/" />}
-                    />
+                    <Route path="/oral-assessment" element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />} />
+                    <Route path="/student-details/:id" element={user.role === 'Teacher' ? <StudentDetails /> : <Navigate to="/" />} />
+                    <Route path="/attempts/:username/:topicId" element={user.role === 'Teacher' ? <AttemptsPage /> : <Navigate to="/" />} />
+
+                    {/* Rubrics Page Route */}
+                    <Route path="/rubrics" element={user.role === 'Teacher' ? <RubricsPage /> : <Navigate to="/" />} />
                 </Routes>
             </div>
         </Router>

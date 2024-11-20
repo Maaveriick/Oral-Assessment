@@ -29,6 +29,13 @@ const HomeTeacher = ({ username, onLogout }) => {
         >
           Student Attempts
         </button>
+        <button
+          className="btn btn-primary mx-2"
+          style={{ width: '150px' }} // Same width for buttons
+          onClick={() => navigate('/rubrics')}
+        >
+          Rubrics
+        </button>
       </div>
 
       <button

@@ -3,6 +3,7 @@ users,
 topic,
 
 assessment_sessions,
+
 CREATE TABLE assessment_sessions (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) NOT NULL,
@@ -15,7 +16,8 @@ CREATE TABLE assessment_sessions (
 ALTER TABLE assessment_sessions ADD COLUMN attempt_count INTEGER DEFAULT 0;
 
 
-feedback
+feedback,
+
 CREATE TABLE feedback (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) NOT NULL,            -- Student's username
@@ -25,3 +27,9 @@ CREATE TABLE feedback (
   feedback_text TEXT NOT NULL
 );
 
+rubrics,
+
+CREATE TABLE rubrics (
+  id SERIAL PRIMARY KEY,
+  rubric_text TEXT NOT NULL
+);

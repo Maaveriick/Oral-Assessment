@@ -537,8 +537,90 @@ app.post('/get_attempt_details', async (req, res) => {
   }
 });
 
+// Save or Update Rubric (POST for create, PUT for update)
+app.post('/save-rubric', async (req, res) => {
+  const { rubric, rubricId } = req.body;
 
+  try {
+    if (rubricId) {
+      // Update existing rubric
+      const result = await pool.query(
+        'UPDATE rubrics SET rubric_text = $1 WHERE id = $2 RETURNING *',
+        [rubric, rubricId]
+      );
 
+      if (result.rowCount > 0) {
+        res.status(200).json({ message: 'Rubric updated successfully', rubric: result.rows[0] });
+      } else {
+        res.status(404).json({ message: 'Rubric not found' });
+      }
+    } else {
+      // Insert new rubric
+      const result = await pool.query(
+        'INSERT INTO rubrics (rubric_text) VALUES ($1) RETURNING *',
+        [rubric]
+      );
+      res.status(200).json({ message: 'Rubric saved successfully', rubric: result.rows[0] });
+    }
+  } catch (error) {
+    console.error('Error saving rubric:', error);
+    res.status(500).json({ error: 'Failed to save rubric' });
+  }
+});
+
+// Fetch Rubrics
+app.get('/rubrics', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM rubrics');
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching rubrics:', error);
+    res.status(500).json({ error: 'Failed to fetch rubrics' });
+  }
+});
+
+// Add the PUT route for updating rubrics
+app.put('/save-rubric', async (req, res) => {
+  const { rubric, rubricId } = req.body;
+
+  try {
+    if (!rubricId) {
+      return res.status(400).json({ error: 'Rubric ID is required to update' });
+    }
+
+    const result = await pool.query(
+      'UPDATE rubrics SET rubric_text = $1 WHERE id = $2 RETURNING *',
+      [rubric, rubricId]
+    );
+
+    if (result.rowCount > 0) {
+      res.status(200).json({ message: 'Rubric updated successfully', rubric: result.rows[0] });
+    } else {
+      res.status(404).json({ message: 'Rubric not found' });
+    }
+  } catch (error) {
+    console.error('Error updating rubric:', error);
+    res.status(500).json({ error: 'Failed to update rubric' });
+  }
+});
+
+// DELETE Route
+app.delete('/delete-rubric/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query('DELETE FROM rubrics WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Rubric not found' });
+    }
+
+    res.status(200).json({ message: 'Rubric deleted successfully', rubric: result.rows[0] });
+  } catch (error) {
+    console.error('Error deleting rubric:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 // Listening on port 5000
 app.listen(5000, () => {
