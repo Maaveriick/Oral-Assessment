@@ -1,72 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ViewFeedback = () => {
-  const { id } = useParams();
+  const { username, topicId, attempt_count } = useParams(); // Fetch params
+  const [feedbackDetails, setFeedbackDetails] = useState(null); // To store feedback details
+  const [attemptDetails, setAttemptDetails] = useState(null); // To store attempt details
   const navigate = useNavigate();
-  const [feedback, setFeedback] = useState({});
-  const [loading, setLoading] = useState(true); // State for loading
-  const [error, setError] = useState(null); // State for error handling
 
+  // Fetch feedback details and attempt details when the page loads
   useEffect(() => {
-    // Fetch feedback by ID
-    const fetchFeedback = async () => {
+    const fetchDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/feedbacks/${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch feedback');
-        }
+        // Fetch feedback details
+        const feedbackResponse = await axios.post('http://localhost:5000/feedbacks/details', {
+          username,
+          topicId,
+          attempt_count,
+        });
+        setFeedbackDetails(feedbackResponse.data);
 
-        const data = await response.json();
-        setFeedback(data);
+        // Fetch attempt details
+        const attemptResponse = await axios.post('http://localhost:5000/get_attempt_details', {
+          username,
+          topicId,
+          attempt_count,
+        });
+        setAttemptDetails(attemptResponse.data);
       } catch (error) {
-        setError(error.message); // Update error state
-      } finally {
-        setLoading(false); // End loading state
+        console.error('Error fetching details:', error);
       }
     };
 
-    fetchFeedback();
-  }, [id]);
-
-  const handleBack = () => {
-    navigate('/crud-feedback'); // Navigate back to the topic list
-  };
-
-  if (loading) {
-    return <div className="container mt-4">Loading...</div>; // Loading message
-  }
-
-  if (error) {
-    return (
-      <div className="container mt-4">
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-        <button className="btn btn-secondary" onClick={handleBack}>
-          Back to Feedbacks List
-        </button>
-      </div>
-    ); // Display error message
-  }
+    fetchDetails();
+  }, [username, topicId, attempt_count]);
 
   return (
-    <div className="container mt-4">
-      <div className="card p-4">
-        <h2 className="mb-4">View Feedback</h2>
-
-        {/* Feedback */}
-        <div className="mb-3">
-          <label className="form-label">Feedback:</label>
-          <h5 className="form-control">{feedback.feedback}</h5>
-        </div>
-
-        {/* Back Button */}
-        <div className="mt-4">
-          <button className="btn btn-secondary" onClick={handleBack}>
-            Back to Feedback List
-          </button>
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-8 col-lg-6">
+          <div className="card shadow-lg border-light">
+            <div className="card-body">
+              <h2 className="text-center mb-4 text-primary">View Feedback for Attempt #{attempt_count}</h2>
+              {attemptDetails ? (
+                <>
+                  <div className="mb-4">
+                    <h5 className="text-info">Generated Question:</h5>
+                    <p>{attemptDetails.question}</p>
+                  </div>
+                  <div className="mb-4">
+                    <h5 className="text-info">Responses:</h5>
+                    <ul className="list-group">
+                      {attemptDetails.responses.map((response, index) => (
+                        <li key={index} className="list-group-item">
+                          <strong>{response.sender}:</strong> {response.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted">Loading attempt details...</p>
+              )}
+              {feedbackDetails ? (
+                <div className="mb-4">
+                  <h5 className="text-info">Feedback:</h5>
+                  <p>{feedbackDetails.feedback_text}</p>
+                </div>
+              ) : (
+                <p className="text-muted">Loading feedback details...</p>
+              )}
+              <button
+                className="btn btn-secondary w-100"
+                onClick={() => navigate(-1)}
+              >
+                Back
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

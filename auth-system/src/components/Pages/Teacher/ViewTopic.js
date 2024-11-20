@@ -1,124 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-const ViewTopic = () => {
-  const { id } = useParams();
+const ViewFeedback = () => {
+  const { username, topicId, attempt_count } = useParams(); // Get URL parameters
+  const [feedbackDetails, setFeedbackDetails] = useState(null); // Store feedback details
+  const [error, setError] = useState(''); // Store errors if any
   const navigate = useNavigate();
-  const [topic, setTopic] = useState({});
-  const [loading, setLoading] = useState(true); // State for loading
-  const [error, setError] = useState(null); // State for error handling
 
+  // Fetch feedback details from the backend
   useEffect(() => {
-    // Fetch topic by ID
-    const fetchTopic = async () => {
+    const fetchFeedback = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/topics/${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch topic');
-        }
-
-        const data = await response.json();
-        console.log('Fetched topic:', data); // Log the fetched data to inspect its structure
-        setTopic(data);
-      } catch (error) {
-        setError(error.message); // Update error state
-      } finally {
-        setLoading(false); // End loading state
+        const response = await axios.post('http://localhost:5000/feedbacks/details', {
+          username,
+          topicId,
+          attempt_count,
+        });
+        setFeedbackDetails(response.data);
+      } catch (err) {
+        console.error('Error fetching feedback:', err);
+        setError(err.response?.data?.message || 'Error fetching feedback.');
       }
     };
 
-    fetchTopic();
-  }, [id]);
-
-  const handleBack = () => {
-    navigate('/crud-topic'); // Navigate back to the topic list
-  };
-
-  if (loading) {
-    return <div className="container mt-4">Loading...</div>; // Loading message
-  }
-
-  if (error) {
-    return (
-      <div className="container mt-4">
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-        <button className="btn btn-secondary" onClick={handleBack}>
-          Back to Topics List
-        </button>
-      </div>
-    ); // Display error message
-  }
+    fetchFeedback();
+  }, [username, topicId, attempt_count]);
 
   return (
-    <div className="container mt-4">
-      <div className="card p-4">
-        <h2 className="mb-4">View Topic</h2>
-
-        {/* Topic Name */}
-        <div className="mb-3">
-          <label className="form-label">Topic Name:</label>
-          <h5 className="form-control">{topic.topicname}</h5>
-        </div>
-
-        {/* Difficulty */}
-        <div className="mb-3">
-          <label className="form-label">Difficulty:</label>
-          <h5 className="form-control">{topic.difficulty}</h5>
-        </div>
-
-        {/* Date Created */}
-        <div className="mb-3">
-          <label className="form-label">Date Created:</label>
-          <h5 className="form-control">
-            {topic.datecreated ? new Date(topic.datecreated).toLocaleString() : 'N/A'}
-          </h5>
-        </div>
-
-        {/* Description */}
-        <div className="mb-3">
-          <label className="form-label">Description:</label>
-          <p className="form-control">{topic.description}</p> {/* Display the description */}
-        </div>
-
-        {/* Related Video */}
-        {topic.video_url && (
-          <div className="mb-3">
-            <label className="form-label">Related Video:</label>
-            <div className="form-control">
-              <video width="600" controls>
-                <source src={`http://localhost:5000/${topic.video_url}`} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-8 col-lg-6">
+          <div className="card shadow-lg border-light">
+            <div className="card-body">
+              <h2 className="text-center mb-4 text-primary">View Feedback</h2>
+              {error ? (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              ) : feedbackDetails ? (
+                <>
+                  <div className="mb-3">
+                    <h5 className="text-info">Username:</h5>
+                    <p>{feedbackDetails.username}</p>
+                  </div>
+                  <div className="mb-3">
+                    <h5 className="text-info">Teacher Username:</h5>
+                    <p>{feedbackDetails.teacher_username}</p>
+                  </div>
+                  <div className="mb-3">
+                    <h5 className="text-info">Topic ID:</h5>
+                    <p>{feedbackDetails.topic_id}</p>
+                  </div>
+                  <div className="mb-3">
+                    <h5 className="text-info">Attempt Count:</h5>
+                    <p>{feedbackDetails.attempt_count}</p>
+                  </div>
+                  <div className="mb-3">
+                    <h5 className="text-info">Feedback Text:</h5>
+                    <p>{feedbackDetails.feedback_text}</p>
+                  </div>
+                  <button
+                    className="btn btn-primary w-100"
+                    onClick={() => navigate('/crud-feedback')} // Navigate back to the feedback list
+                  >
+                    Back to Feedback List
+                  </button>
+                </>
+              ) : (
+                <p className="text-muted">Loading feedback details...</p>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Questions Section */}
-        <div className="mb-3">
-          <label className="form-label">Questions:</label>
-          {topic.questions && topic.questions.length > 0 ? (
-            topic.questions.map((question, index) => (
-              <div key={index} className="form-control mb-2">
-                <h6>{question.text || question}</h6> {/* Adjust based on the actual structure */}
-              </div>
-            ))
-          ) : (
-            <p>No questions available for this topic.</p>
-          )}
-        </div>
-
-        {/* Back Button */}
-        <div className="mt-4">
-          <button className="btn btn-secondary" onClick={handleBack}>
-            Back to Topics List
-          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ViewTopic;
+export default ViewFeedback;

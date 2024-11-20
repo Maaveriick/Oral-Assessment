@@ -96,14 +96,13 @@ const App = () => {
                     element={<CreateFeedback />} 
                     />
 
-                    <Route
-                        path="/edit-feedback/:id"
-                        element={user.role === 'Teacher' ? <EditFeedback /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/view-feedback/:id"
-                        element={user.role === 'Teacher' ? <ViewFeedback /> : <Navigate to="/" />}
-                    />
+                    <Route 
+                    path="/edit-feedback/:username/:topicId/:attempt_count" 
+                    element={<EditFeedback />} />
+
+                    <Route 
+                    path="/view-feedback/:username/:topicId/:attempt_count" 
+                    element={<ViewFeedback />} />  
 
                     {/* Student-specific routes */}
                     <Route

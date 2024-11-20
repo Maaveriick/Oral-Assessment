@@ -303,11 +303,19 @@ app.get('/feedbacks', async (req, res) => {
   }
 });
 
-app.get('/feedbacks/:id', async (req, res) => {
-  const { id } = req.params;
+app.post('/feedbacks/details', async (req, res) => {
+  const { username, topicId, attempt_count } = req.body;
+
+  if (!username || !topicId || !attempt_count) {
+    return res.status(400).send('Username, topic ID, and attempt count are required');
+  }
 
   try {
-    const feedback = await pool.query('SELECT * FROM feedback WHERE id = $1', [id]);
+    const feedback = await pool.query(
+      `SELECT * FROM feedback 
+       WHERE username = $1 AND topic_id = $2 AND attempt_count = $3`,
+      [username, topicId, attempt_count]
+    );
 
     if (feedback.rows.length === 0) {
       return res.status(404).json({ message: 'Feedback not found' });
@@ -315,27 +323,34 @@ app.get('/feedbacks/:id', async (req, res) => {
 
     res.json(feedback.rows[0]);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error fetching feedback:', err.message);
     res.status(500).send('Server error');
   }
 });
 
-app.put('/feedbacks/:id', async (req, res) => {
-  const { id } = req.params;
-  const { feedbackText } = req.body;
+
+app.put('/feedbacks/update', async (req, res) => {
+  const { username, topicId, attempt_count, feedback_text } = req.body;
+
+  if (!username || !topicId || !attempt_count || !feedback_text) {
+    return res.status(400).send('All fields are required');
+  }
 
   try {
     await pool.query(
-      'UPDATE feedback SET feedback_text = $1 WHERE id = $2',
-      [feedbackText, id]
+      `UPDATE feedback 
+       SET feedback_text = $1 
+       WHERE username = $2 AND topic_id = $3 AND attempt_count = $4`,
+      [feedback_text, username, topicId, attempt_count]
     );
-
-    res.json({ message: 'Feedback updated successfully' });
+    res.status(200).send('Feedback updated successfully');
   } catch (err) {
-    console.error(err.message);
+    console.error('Error updating feedback:', err.message);
     res.status(500).send('Server error');
   }
 });
+
+
 
 app.delete('/feedbacks/:id', async (req, res) => {
   const { id } = req.params;
