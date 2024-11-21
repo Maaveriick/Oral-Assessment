@@ -9,6 +9,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const FeedbackList = () => {
   const [students, setStudents] = useState([]);
+  const [error, setError] = useState(null); // To store error state
   const tableRef = useRef(null);
   const navigate = useNavigate();
 
@@ -31,6 +32,7 @@ const FeedbackList = () => {
       localStorage.setItem('students', JSON.stringify(response.data)); // Store students in localStorage
     } catch (error) {
       console.error('Error fetching students:', error);
+      setError('Error fetching students. Please try again later.');
     }
   };
 
@@ -90,7 +92,6 @@ const FeedbackList = () => {
               Home
             </button>
           </li>
-          {/* Add more nav items as needed */}
           <li className="nav-item">
             <button
               className="nav-link btn btn-link"
@@ -106,6 +107,9 @@ const FeedbackList = () => {
       {/* Main Content */}
       <div className="flex-fill p-4">
         <h1 className="mb-4">Students List</h1>
+
+        {error && <div className="alert alert-danger">{error}</div>} {/* Display error message */}
+
         <div className="overflow-auto">
           <table id="studentTable" ref={tableRef} className="table table-bordered">
             <thead>

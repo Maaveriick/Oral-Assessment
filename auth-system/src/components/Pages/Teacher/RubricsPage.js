@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const RubricsPage = () => {
   const [rubrics, setRubrics] = useState([]);
   const [newRubric, setNewRubric] = useState('');
   const [editRubricId, setEditRubricId] = useState(null); // To track which rubric is being edited
+  const navigate = useNavigate(); // Initialize navigate hook
 
   // Fetch Rubrics from Backend
   useEffect(() => {
@@ -82,6 +84,11 @@ const RubricsPage = () => {
   return (
     <div className="container mt-4">
       <h1>Oral Assessment Rubrics</h1>
+
+      {/* Back Button */}
+      <button className="btn btn-secondary mb-4" onClick={() => navigate("/")}>
+        Back to Home
+      </button>
 
       {/* Input Form for New Rubric */}
       <div className="mb-4">

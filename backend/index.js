@@ -373,6 +373,56 @@ app.delete('/feedbacks', async (req, res) => {
   }
 });
 
+
+// Function to generate AI feedback based on rubric, question, and responses
+const generateFeedback = async (rubric, question, responses) => {
+  try {
+    // Combine rubric, generated question, and student responses into a prompt
+    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
+    
+    const prompt = `
+    You are a helpful assistant that evaluates student responses. 
+    The student was asked the following question: 
+    "${question}"
+    
+    Their responses are as follows:
+    ${responsesText}
+    
+    Using the rubric provided below, please evaluate the student's responses and generate a paragraph of feedback. 
+    You should focus on the strengths and weaknesses in the student's responses, provide suggestions for improvement, and use the rubric for context. 
+    Avoid listing the individual criteria from the rubric, and instead, provide a summary of the overall performance in a clear and constructive paragraph.
+    
+    Rubric: ${rubric}
+    `;
+
+    // Using the correct OpenAI method for completions
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // or another model
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 300, // Adjust the number of tokens as needed
+    });
+
+    return completion.choices[0].message.content.trim(); // Extract the AI-generated text
+  } catch (error) {
+    console.error('Error generating feedback:', error);
+    return 'Error generating feedback.';
+  }
+};
+
+// Express route to handle feedback generation
+app.post('/generate-feedback', async (req, res) => {
+  const { rubric, question, responses } = req.body; // Get rubric, question, and responses from the request body
+  try {
+    const feedback = await generateFeedback(rubric, question, responses); // Generate feedback based on rubric, question, and responses
+    res.status(200).json({ feedback });
+  } catch (error) {
+    console.error('Error generating feedback:', error);
+    res.status(500).json({ error: 'Failed to generate feedback' });
+  }
+});
 //Generate Question
 app.post('/generate-questions', async (req, res) => {
   const { topicname, description } = req.body;

@@ -1,6 +1,31 @@
 users,
 
+CREATE TYPE user_role AS ENUM ('Student', 'Teacher', 'Admin');
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY, 
+    username VARCHAR(255) NOT NULL, 
+    email VARCHAR(255) UNIQUE NOT NULL, 
+    password VARCHAR(255) NOT NULL, 
+    role user_role NOT NULL, 
+    reset_token VARCHAR(255), 
+    reset_token_expires BIGINT
+);
+
 topic,
+
+CREATE TYPE topic_difficulty AS ENUM ('Easy', 'Intermediate', 'Hard');
+
+
+CREATE TABLE topic (
+    id SERIAL PRIMARY KEY,
+    topicname VARCHAR(255) NOT NULL, 
+    difficulty topic_difficulty NOT NULL,
+    video_url VARCHAR(255), 
+    datecreated TIMESTAMP DEFAULT NOW(),
+    description TEXT,
+    questions TEXT[] 
+);
 
 assessment_sessions,
 
