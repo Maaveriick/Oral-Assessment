@@ -6,6 +6,7 @@ import 'datatables.net';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { FaChalkboardTeacher} from 'react-icons/fa'; // Add icons for visual appeal
 
 const StudentDetails = () => {
   const { id } = useParams(); // Extract student ID from the URL
@@ -75,44 +76,39 @@ const StudentDetails = () => {
     <div className="d-flex">
       {/* Sidebar */}
       <div
-        style={{
-          backgroundColor: '#343a40', // Dark background
-          color: 'white', // White text
-          width: '200px',
-          padding: '15px',
-          height: '100vh', // Full height
-        }}
+        className="sidebar bg-dark text-white p-4"
+        style={{ width: "250px", height: "100vh" }}
       >
-        <h5>MyApp</h5>
+        <h2
+          className="text-center mb-4 cursor-pointer"
+          onClick={() => navigate("/hometeacher")} // Navigate to HomeAdmin on click
+          style={{ cursor: "pointer" }} // Optional: Adds cursor pointer to indicate it's clickable
+        >
+          Teacher Navigation
+        </h2>
+
         <ul className="nav flex-column">
+          {/* Sidebar links */}
           <li className="nav-item">
             <button
-              className="nav-link btn btn-link"
-              style={{ color: 'white' }} // White text for link
-              onClick={() => navigate('/')} // Navigate to home on click
+              className="nav-link text-white"
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/crud-topic")}
             >
-              Home
+              <FaChalkboardTeacher className="me-2" /> Topic
             </button>
           </li>
+
           <li className="nav-item">
             <button
-              className="nav-link btn btn-link"
-              style={{ color: 'white' }} // White text for link
-              onClick={() => navigate('/crud-feedback')} // Navigate to feedback list
+              className="nav-link text-white"
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/class")}
             >
-              Student List
+              <FaChalkboardTeacher className="me-2" /> Class
             </button>
           </li>
-          {/* Add more nav items as needed */}
-          <li className="nav-item">
-            <button
-              className="nav-link btn btn-link"
-              style={{ color: 'white' }} // White text for link
-              onClick={() => navigate('/crud-topic')} // Navigate to feedback list
-            >
-              Topic List
-            </button>
-          </li>
+          {/* Additional links can be added here */}
         </ul>
       </div>
 

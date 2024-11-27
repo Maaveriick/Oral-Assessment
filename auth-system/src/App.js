@@ -22,6 +22,13 @@ import ViewFeedback from './components/Pages/Teacher/ViewFeedback';
 import StudentDetails from './components/Pages/Teacher/StudentDetails';
 import AttemptsPage from './components/Pages/Teacher/AttemptsPage';
 
+import HomeAdmin from './components/Pages/Admin/HomeAdmin';
+import ClassList from './components/Pages/Admin/ClassList';
+import CreateClass from './components/Pages/Admin/CreateClass';
+import EditClass from './components/Pages/Admin/EditClass';
+import ViewClass from './components/Pages/Admin/ViewClass';
+
+import Class from './components/Pages/Teacher/Class';
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
     const [loading, setLoading] = useState(true);
@@ -47,6 +54,7 @@ const App = () => {
     if (loading) {
         return <div>Loading...</div>;
     }
+    
 
     return (
         <Router>
@@ -67,6 +75,10 @@ const App = () => {
                         path="/hometeacher"
                         element={user.role === 'Teacher' ? <HomeTeacher username={user.username} onLogout={handleLogout} /> : <Navigate to="/" />}
                     />
+                    <Route
+                        path="/homeadmin"
+                        element={user.role === 'Admin' ? <HomeAdmin username={user.username} onLogout={handleLogout} /> : <Navigate to="/" />}
+                    />
 
                     {/* Topic management routes for teachers */}
                     <Route path="/crud-topic" element={user.role === 'Teacher' ? <TopicList /> : <Navigate to="/" />} />
@@ -75,7 +87,9 @@ const App = () => {
                     <Route path="/view-topic/:id" element={user.role === 'Teacher' ? <ViewTopic /> : <Navigate to="/" />} />
 
                     {/* Feedback management routes */}
-                    <Route path="/crud-feedback" element={user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />} />
+                    <Route path="/class" element={user.role === 'Teacher' ? <Class /> : <Navigate to="/" />} />
+                    <Route path="/feedback-list" element={ user.role === 'Teacher' ? <FeedbackList /> : <Navigate to="/" />}/>
+
                     <Route path="/create-feedback/:username/:topicId/:attempt_count" element={<CreateFeedback />} />
                     <Route path="/edit-feedback/:username/:topicId/:attempt_count" element={<EditFeedback />} />
                     <Route path="/view-feedback/:username/:topicId/:attempt_count" element={<ViewFeedback />} />
@@ -87,6 +101,13 @@ const App = () => {
 
                     {/* Rubrics Page Route */}
                     <Route path="/rubrics" element={user.role === 'Teacher' ? <RubricsPage /> : <Navigate to="/" />} />
+
+                    <Route path="/crud-class" element={user.role === 'Admin' ? <ClassList onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/create-class" element={user.role === 'Admin' ? <CreateClass /> : <Navigate to="/" />} />
+                    <Route path="/edit-class/:classId" element={user.role === 'Admin' ? <EditClass /> : <Navigate to="/" />} />
+                    <Route path="/view-class/:classId" element={user.role === 'Admin' ? <ViewClass /> : <Navigate to="/" />} />
+                   
+                   
                 </Routes>
             </div>
         </Router>

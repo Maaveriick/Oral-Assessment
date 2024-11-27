@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import { Card, Button } from 'react-bootstrap'; // Use Card and Button from Bootstrap
 
 const HomeTeacher = ({ username, onLogout }) => {
   const navigate = useNavigate();
@@ -10,41 +11,82 @@ const HomeTeacher = ({ username, onLogout }) => {
   }, [username]);
 
   return (
-    <div className="container text-center d-flex flex-column justify-content-center align-items-center min-vh-100">
-      <h1>Welcome, {username}!</h1>
-      <h2 className="mt-3">What Would You Like To Do Today?</h2>
-      
-      <div className="d-flex mt-4">
-        <button
-          className="btn btn-primary mx-2"
-          style={{ width: '150px' }} // Same width for buttons
-          onClick={() => navigate('/crud-topic')}
-        >
-          CRUD Topic
-        </button>
-        <button
-          className="btn btn-primary mx-2"
-          style={{ width: '150px' }} // Same width for buttons
-          onClick={() => navigate('/crud-feedback')}
-        >
-          Student Attempts
-        </button>
-        <button
-          className="btn btn-primary mx-2"
-          style={{ width: '150px' }} // Same width for buttons
-          onClick={() => navigate('/rubrics')}
-        >
-          Rubrics
-        </button>
+    <div className="container-fluid d-flex flex-column justify-content-center align-items-center min-vh-100 bg-light">
+      {/* Hero Section */}
+      <div className="text-center mb-5 w-100 p-5 bg-primary text-white rounded-3 shadow-lg">
+        <h1 className="display-4">Welcome, {username}!</h1>
+        <p className="lead">Manage your topics, track student progress, and create rubrics all in one place.</p>
       </div>
 
-      <button
-        onClick={onLogout}
-        className="btn btn-danger position-absolute"
-        style={{ bottom: '20px', left: '50%', transform: 'translateX(-50%)' }} // Center logout button
-      >
-        Logout
-      </button>
+      {/* Action Cards Section */}
+      <div className="row justify-content-center mb-4">
+        {/* Card 1 */}
+        <div className="col-12 col-md-4 mb-4 d-flex">
+          <Card className="shadow-lg border-primary h-100 w-100">
+            <Card.Body className="text-center p-4">
+              <i className="bi bi-file-earmark-plus mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
+              <Card.Title className="text-white h5">Create Assignment</Card.Title>
+              <Button
+                variant="primary"
+                className="w-100 mt-3"
+                onClick={() => navigate('/crud-topic')}
+              >
+                <i className="bi bi-file-earmark-plus me-2"></i> Create Topic
+              </Button>
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Card 2 */}
+        <div className="col-12 col-md-4 mb-4 d-flex">
+          <Card className="shadow-lg border-primary h-100 w-100">
+            <Card.Body className="text-center p-4">
+              <i className="bi bi-bar-chart-line mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
+              <Card.Title className="text-white h5">Track Student Progress</Card.Title>
+              <Button
+                variant="primary"
+                className="w-100 mt-3"
+                onClick={() => navigate('/class')}
+              >
+                <i className="bi bi-bar-chart-line me-2"></i> View Student's Progress
+              </Button>
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Card 3 */}
+        <div className="col-12 col-md-4 mb-4 d-flex">
+          <Card className="shadow-lg border-primary h-100 w-100">
+            <Card.Body className="text-center p-4">
+              <i className="bi bi-pencil-square mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
+              <Card.Title className="text-white h5">Manage Rubrics</Card.Title>
+              <Button
+                variant="primary"
+                className="w-100 mt-3"
+                onClick={() => navigate('/rubrics')}
+              >
+                <i className="bi bi-pencil-square me-2"></i> Create Rubrics
+              </Button>
+            </Card.Body>
+          </Card>
+        </div>
+      </div>
+
+      {/* Logout Button */}
+      <div className="d-flex justify-content-center mt-5">
+        <button
+          onClick={onLogout}
+          className="btn btn-danger"
+          style={{
+            width: '200px',
+            padding: '10px 0',
+            fontSize: '18px',
+            borderRadius: '50px',
+          }}
+        >
+          <i className="bi bi-box-arrow-right me-2"></i> Logout
+        </button>
+      </div>
     </div>
   );
 };

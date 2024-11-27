@@ -92,6 +92,7 @@ const Register = () => {
           <select className="form-select" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
+            <option value="Admin">Admin</option>
           </select>
         </div>
 

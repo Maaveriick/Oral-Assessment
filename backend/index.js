@@ -23,6 +23,7 @@ const pool = new Pool({
   port: 5432,
 });
 
+
 // OpenAI API setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -159,13 +160,14 @@ app.post('/reset-password/:token', async (req, res) => {
 // Endpoint to get all student usernames
 app.get('/students', async (req, res) => {
   try {
-    const students = await pool.query('SELECT id, username FROM users WHERE role = $1', ['Student']);
-    res.status(200).json(students.rows); // Send student data as JSON
+    const students = await pool.query('SELECT id, username, email FROM users WHERE role = $1', ['Student']);
+    res.status(200).json(students.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
+
 
 app.get('/students/:id', async (req, res) => {
   const { id } = req.params;
@@ -182,10 +184,17 @@ app.get('/students/:id', async (req, res) => {
   }
 });
 
+// Endpoint to get all teacher information
+app.get('/teachers', async (req, res) => {
+  try {
+    const teachers = await pool.query('SELECT id, username, email FROM users WHERE role = $1', ['Teacher']);
+    res.status(200).json(teachers.rows);  // Send the teacher data as a response
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 
-
-
-// CRUD for Topics
 // CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
   const { topicname, difficulty, description, questions } = req.body;
@@ -671,6 +680,163 @@ app.delete('/delete-rubric/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+//CRUD Classess
+
+// Get all classes
+app.get('/classes', async (req, res) => {
+  try {
+    const classes = await pool.query('SELECT * FROM classes');
+    res.status(200).json(classes.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Create a new class// Endpoint to create a class
+app.post('/classes', async (req, res) => {
+  const { className, teacherUsername, students } = req.body;
+
+  if (!className || !teacherUsername || !students) {
+    return res.status(400).json({ error: 'Class name, teacher username, and students are required' });
+  }
+
+  try {
+    // Insert into 'classes' table, only storing teacher's username
+    const result = await pool.query(
+      'INSERT INTO classes (class_name, teacher_username, students) VALUES ($1, $2, $3) RETURNING *',
+      [className, teacherUsername, JSON.stringify(students)]
+    );
+
+    res.status(201).json({
+      message: 'Class created successfully',
+      class: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error creating class:', error);
+    res.status(500).json({ error: 'Failed to create class' });
+  }
+});
+
+// Update an existing class// Update class information (className, teacherUsername, etc.)
+app.put('/classes/:classId', async (req, res) => {
+  const { classId } = req.params;
+  const { class_name, teacher_username, students } = req.body;
+
+  try {
+    // Ensure that classId is provided
+    if (!classId) {
+      return res.status(400).json({ error: 'Class ID is required to update' });
+    }
+
+    // Ensure the students field is an array, and then serialize it as a JSON string
+    let studentsJson = [];
+    if (students) {
+      studentsJson = JSON.stringify(students); // Serialize array to JSON string
+    }
+
+    // Update the class in the PostgreSQL database
+    const result = await pool.query(
+      'UPDATE classes SET class_name = $1, teacher_username = $2, students = $3 WHERE id = $4 RETURNING *',
+      [class_name, teacher_username, studentsJson, classId]
+    );
+
+    // If the update was successful and a class was found
+    if (result.rowCount > 0) {
+      res.status(200).json({ message: 'Class updated successfully', class: result.rows[0] });
+    } else {
+      // If no class was found with the given ID
+      res.status(404).json({ message: 'Class not found' });
+    }
+  } catch (error) {
+    // If an error occurred while updating the class
+    console.error('Error updating class:', error);
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
+
+
+
+app.get('/classes/:classId', async (req, res) => {
+  let { classId } = req.params;
+  
+  classId = parseInt(classId, 10);
+  
+  if (isNaN(classId)) {
+    return res.status(400).json({ message: 'Invalid classId' });
+  }
+
+  try {
+    const classResult = await pool.query('SELECT class_name, teacher_username, students FROM classes WHERE id = $1', [classId]);
+
+    if (classResult.rows.length > 0) {
+      let students = classResult.rows[0].students;
+
+      if (typeof students === 'string') {
+        students = JSON.parse(students);
+      }
+
+      // Fetch teacher info using teacher_username
+      const teacherResult = await pool.query('SELECT id, username, email FROM users WHERE username = $1 AND role = $2', [classResult.rows[0].teacher_username, 'Teacher']);
+
+      if (teacherResult.rows.length > 0) {
+        res.json({
+          class_name: classResult.rows[0].class_name,
+          teacher: teacherResult.rows[0],
+          students
+        });
+      } else {
+        res.status(404).json({ message: 'Teacher not found' });
+      }
+
+    } else {
+      res.status(404).json({ message: 'Class not found' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Delete a class
+app.delete('/classes/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query('DELETE FROM classes WHERE id = $1', [id]);
+    res.status(200).send('Class deleted successfully');
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Endpoint to get classes assigned to a specific teacher
+app.get('/classes/teacher/:username', async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT id, class_name, teacher_username, students FROM classes WHERE teacher_username = $1',
+      [username]
+    );
+
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows);
+    } else {
+      res.status(404).json({ message: 'No classes found for this teacher.' });
+    }
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    res.status(500).json({ error: 'Failed to fetch classes' });
+  }
+});
+
+
+
 
 // Listening on port 5000
 app.listen(5000, () => {

@@ -37,6 +37,9 @@ const Login = ({ onLoginSuccess }) => {
         } else if (role === 'Teacher') {
           navigate('/hometeacher');
         }
+        else if (role === 'Admin') {
+          navigate('/homeadmin');
+        }
       } else {
         setError('Invalid login credentials');
       }
@@ -87,6 +90,7 @@ const Login = ({ onLoginSuccess }) => {
           >
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
+            <option value="Admin">Admin</option>
           </select>
         </div>
 
