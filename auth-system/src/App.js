@@ -21,6 +21,7 @@ import EditFeedback from './components/Pages/Teacher/EditFeedback';
 import ViewFeedback from './components/Pages/Teacher/ViewFeedback';
 import StudentDetails from './components/Pages/Teacher/StudentDetails';
 import AttemptsPage from './components/Pages/Teacher/AttemptsPage';
+import StudentFeedback from './components/Pages/Student/StudentFeedback';
 
 import HomeAdmin from './components/Pages/Admin/HomeAdmin';
 import ClassList from './components/Pages/Admin/ClassList';
@@ -98,7 +99,8 @@ const App = () => {
                     <Route path="/oral-assessment" element={user.role === 'Student' ? <OralAssessment username={user.username} /> : <Navigate to="/" />} />
                     <Route path="/student-details/:id" element={user.role === 'Teacher' ? <StudentDetails /> : <Navigate to="/" />} />
                     <Route path="/attempts/:username/:topicId" element={user.role === 'Teacher' ? <AttemptsPage /> : <Navigate to="/" />} />
-
+                    <Route path="/student-feedback" element={user.role === 'Student' ? <StudentFeedback username={user.username}  /> : <Navigate to="/" />} />
+                    
                     {/* Rubrics Page Route */}
                     <Route path="/rubrics" element={user.role === 'Teacher' ? <RubricsPage /> : <Navigate to="/" />} />
 

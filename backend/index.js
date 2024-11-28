@@ -18,7 +18,7 @@ app.use(cors());
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'maverick',
+  database: 'jernkeet',
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
@@ -834,6 +834,25 @@ app.get('/classes/teacher/:username', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch classes' });
   }
 });
+
+app.get('/api/student/attempts/:username', async (req, res) => {
+  const { username } = req.params;
+  console.log(`Fetching attempts for username: ${username}`); // Log username
+  try {
+      const attempts = await pool.query(
+          `SELECT topic_id, attempt_count, feedback_text, teacher_username 
+           FROM feedback WHERE username = $1`,  // Change 'student_username' to 'username'
+          [username]
+      );
+      console.log(attempts.rows); // Log query result
+      res.json(attempts.rows);
+  } catch (err) {
+      console.error('Error fetching data from database:', err.message); // Log detailed error
+      res.status(500).json({ error: 'Failed to fetch data from the database.' });
+  }
+});
+
+
 
 
 

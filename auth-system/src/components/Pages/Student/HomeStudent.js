@@ -37,8 +37,8 @@ const HomeStudent = ({ username, onLogout }) => {
                   </button>
                 </li>
                 <li>
-                  <button className="btn btn-outline-secondary w-100 mb-2" onClick={() => navigate('/feedback')}>
-                    View Feedback
+                  <button className="btn btn-outline-primary w-100 mb-2" onClick={() => navigate('/student-feedback')}>
+                  Feedback
                   </button>
                 </li>
                 <li>
