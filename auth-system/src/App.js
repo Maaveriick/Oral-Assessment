@@ -13,7 +13,7 @@ import CreateTopic from './components/Pages/Teacher/CreateTopic';
 import EditTopic from './components/Pages/Teacher/EditTopic';
 import ViewTopic from './components/Pages/Teacher/ViewTopic';
 import OralAssessment from './components/Pages/Student/OralAssessment';
-import RubricsPage from './components/Pages/Teacher/RubricsPage';  // Import the RubricsPage component
+import RubricsPage from './components/Pages/Admin/RubricsPage';  // Import the RubricsPage component
 
 import FeedbackList from './components/Pages/Teacher/FeedbackList';
 import CreateFeedback from './components/Pages/Teacher/CreateFeedback';
@@ -21,6 +21,8 @@ import EditFeedback from './components/Pages/Teacher/EditFeedback';
 import ViewFeedback from './components/Pages/Teacher/ViewFeedback';
 import StudentDetails from './components/Pages/Teacher/StudentDetails';
 import AttemptsPage from './components/Pages/Teacher/AttemptsPage';
+import TeacherList from './components/Pages/Admin/TeacherList';
+import StudentList from './components/Pages/Admin/StudentList';
 import StudentFeedback from './components/Pages/Student/StudentFeedback';
 
 import HomeAdmin from './components/Pages/Admin/HomeAdmin';
@@ -102,14 +104,15 @@ const App = () => {
                     <Route path="/student-feedback" element={user.role === 'Student' ? <StudentFeedback username={user.username}  /> : <Navigate to="/" />} />
                     
                     {/* Rubrics Page Route */}
-                    <Route path="/rubrics" element={user.role === 'Teacher' ? <RubricsPage /> : <Navigate to="/" />} />
+                    <Route path="/rubrics" element={user.role === 'Admin' ? <RubricsPage /> : <Navigate to="/" />} />
 
                     <Route path="/crud-class" element={user.role === 'Admin' ? <ClassList onLogout={handleLogout} /> : <Navigate to="/" />} />
                     <Route path="/create-class" element={user.role === 'Admin' ? <CreateClass /> : <Navigate to="/" />} />
                     <Route path="/edit-class/:classId" element={user.role === 'Admin' ? <EditClass /> : <Navigate to="/" />} />
                     <Route path="/view-class/:classId" element={user.role === 'Admin' ? <ViewClass /> : <Navigate to="/" />} />
                    
-                   
+                    <Route path="/teacherlist" element={user.role === 'Admin' ? <TeacherList onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/studentlist" element={user.role === 'Admin' ? <StudentList onLogout={handleLogout} /> : <Navigate to="/" />} />
                 </Routes>
             </div>
         </Router>

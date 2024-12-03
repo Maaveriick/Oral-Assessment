@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
-import { FaChalkboardTeacher, FaSignOutAlt } from 'react-icons/fa'; // Add icons for visual appeal
+import { FaChalkboardTeacher, FaSignOutAlt, FaClipboardList, FaUsers } from 'react-icons/fa'; // Add FaUsers for Teacher List
 
 const HomeAdmin = ({ username, onLogout }) => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const HomeAdmin = ({ username, onLogout }) => {
       {/* Sidebar */}
       <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
         <h2 className="text-center mb-4">Admin Dashboard</h2>
-        <ul className="nav flex-column">
+        <ul className="nav flex-column align-items-start">
           {/* Sidebar links */}
           <li className="nav-item">
             <button
@@ -27,7 +27,33 @@ const HomeAdmin = ({ username, onLogout }) => {
               <FaChalkboardTeacher className="me-2" /> Manage Classes
             </button>
           </li>
-          {/* Additional links can be added here */}
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/rubrics')}
+            >
+              <FaClipboardList className="me-2" /> Manage Rubrics
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/teacherlist')}
+            >
+              <FaUsers className="me-2" /> Teacher List
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/studentlist')}
+            >
+              <FaUsers className="me-2" /> Student List
+            </button>
+          </li>
         </ul>
 
         {/* Logout Button */}
@@ -61,7 +87,51 @@ const HomeAdmin = ({ username, onLogout }) => {
                 </div>
               </div>
             </div>
-            {/* Add more cards for other actions in the future */}
+            <div className="col">
+              <div className="card shadow-sm">
+                <div className="card-body text-center">
+                  <FaClipboardList size={40} className="mb-3" />
+                  <h5 className="card-title">Manage Rubrics</h5>
+                  <p className="card-text">Define and update rubrics for assessments.</p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate('/rubrics')}
+                  >
+                    Go to Rubrics
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="col">
+              <div className="card shadow-sm">
+                <div className="card-body text-center">
+                  <FaUsers size={40} className="mb-3" />
+                  <h5 className="card-title">Teacher List</h5>
+                  <p className="card-text">View and manage the list of teachers.</p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate('/teacherlist')}
+                  >
+                    Go to Teacher List
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="col">
+              <div className="card shadow-sm">
+                <div className="card-body text-center">
+                  <FaUsers size={40} className="mb-3" />
+                  <h5 className="card-title">Student List</h5>
+                  <p className="card-text">View and manage the list of students.</p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate('/studentlist')}
+                  >
+                    Go to Student List
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

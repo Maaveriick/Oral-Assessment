@@ -10,7 +10,16 @@ const CreateFeedback = () => {
   const [attemptDetails, setAttemptDetails] = useState(null); // To store attempt details
   const [rubricText, setRubricText] = useState(''); // To store rubric text
   const [questionText, setQuestionText] = useState(''); // To store the generated question
+  const [loggedInUser, setLoggedInUser] = useState(null); // To store logged-in user
   const navigate = useNavigate();
+
+  // Fetch the logged-in user from localStorage
+  useEffect(() => {
+    const user = localStorage.getItem('username'); // Assuming the username is stored in localStorage
+    if (user) {
+      setLoggedInUser(user); // Set logged-in user state
+    }
+  }, []);
 
   // Fetch attempt details when the page loads
   useEffect(() => {
@@ -41,34 +50,39 @@ const CreateFeedback = () => {
   // Handle the form submission to store feedback
   const handleCreate = async (e) => {
     e.preventDefault();
-
-    const teacherUsername = JSON.parse(localStorage.getItem('user'))?.username; // Get teacher's username from localStorage
-
+  
+    const teacherUsername = loggedInUser; // Use the logged-in username as the teacher's username
+  
     if (!teacherUsername) {
       console.error('No teacher username found!');
       return;
     }
-
+  
     try {
       // Combine manual feedback with AI-generated feedback
       const finalFeedback = feedback || generatedFeedback; // Use manual feedback if provided, otherwise AI-generated
+  
+      // Get user_id from attemptDetails
+      const userId = attemptDetails?.user_id; // Get user_id from attemptDetails
 
-      // Send feedback data to the backend to save it
-      await axios.post('http://localhost:5000/feedbacks', {
-        username,             // Student's username
-        teacher_username: teacherUsername,  // Teacher's username
-        topicId,
-        attempt_count,
-        feedback: finalFeedback, // Save the final feedback
-      });
+await axios.post('http://localhost:5000/feedbacks', {
+  username,             // Student's username
+  teacher_username: teacherUsername,  // Teacher's username (logged-in user)
+  topicId,
+  attempt_count,
+  feedback: finalFeedback, // Save the final feedback
+  user_id: userId, // Send user_id
+});
 
+  
       // Redirect back to attempts page
       navigate(`/attempts/${username}/${topicId}`);
     } catch (error) {
       console.error('Error creating feedback:', error);
     }
   };
-
+  
+  
   // Generate AI feedback based on rubric text, question, and responses
   const handleGenerateFeedback = async () => {
     try {
@@ -92,6 +106,8 @@ const CreateFeedback = () => {
           <div className="card shadow-lg border-light">
             <div className="card-body">
               <h2 className="text-center mb-4 text-primary">Create Feedback for Attempt #{attempt_count}</h2>
+              
+
               <div className="row">
                 {/* Left Side: Attempt Details */}
                 <div className="col-md-6">

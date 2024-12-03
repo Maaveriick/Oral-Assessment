@@ -86,7 +86,7 @@ const RubricsPage = () => {
       <h1>Oral Assessment Rubrics</h1>
 
       {/* Back Button */}
-      <button className="btn btn-secondary mb-4" onClick={() => navigate("/")}>
+      <button className="btn btn-secondary mb-4" onClick={() => navigate("/homeadmin")}>
         Back to Home
       </button>
 

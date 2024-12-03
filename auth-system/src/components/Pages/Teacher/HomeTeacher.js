@@ -54,22 +54,7 @@ const HomeTeacher = ({ username, onLogout }) => {
           </Card>
         </div>
 
-        {/* Card 3 */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <i className="bi bi-pencil-square mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
-              <Card.Title className="text-white h5">Manage Rubrics</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/rubrics')}
-              >
-                <i className="bi bi-pencil-square me-2"></i> Create Rubrics
-              </Button>
-            </Card.Body>
-          </Card>
-        </div>
+        
       </div>
 
       {/* Logout Button */}

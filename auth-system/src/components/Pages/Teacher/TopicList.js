@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import $ from 'jquery';
@@ -6,22 +6,36 @@ import 'datatables.net';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { FaChalkboardTeacher} from 'react-icons/fa'; // Add icons for visual appeal
+import { FaChalkboardTeacher} from 'react-icons/fa'; 
 
 const TopicList = () => {
   const [topics, setTopics] = useState([]);
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
+  // Log the signed-in user from localStorage
+  useEffect(() => {
+    const loggedInUser = localStorage.getItem('username');
+    console.log('Logged in user:', loggedInUser);
+  }, []); // Log on component mount
+
   // Function to fetch topics
   const fetchTopics = async () => {
+    const loggedInUser = localStorage.getItem('username'); // Get the logged-in username from localStorage
+  
     try {
-      const response = await axios.get('http://localhost:5000/topics');
+      const response = await axios.get('http://localhost:5000/topics', {
+        headers: {
+          'username': loggedInUser, // Send username in the header
+        },
+      });
+      console.log('Fetched topics:', response.data);
       setTopics(response.data);
     } catch (error) {
       console.error('Error fetching topics:', error);
     }
   };
+  
 
   // Initialize DataTable
   const initializeDataTable = () => {
@@ -46,8 +60,6 @@ const TopicList = () => {
     }
   }, [topics]);
 
-  
-
   const deleteTopic = async (id) => {
     try {
       const confirmDelete = window.confirm('Are you sure you want to delete this topic?');
@@ -69,8 +81,7 @@ const TopicList = () => {
       >
         <h2
           className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate("/hometeacher")} // Navigate to HomeAdmin on click
-          style={{ cursor: "pointer" }} // Optional: Adds cursor pointer to indicate it's clickable
+          onClick={() => navigate("/hometeacher")}
         >
           Teacher Navigation
         </h2>
@@ -81,12 +92,21 @@ const TopicList = () => {
             <button
               className="nav-link text-white"
               style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/crud-topic")}
+            >
+              <FaChalkboardTeacher className="me-2" /> Topic
+            </button>
+          </li>
+          
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: "none", border: "none" }}
               onClick={() => navigate("/class")}
             >
               <FaChalkboardTeacher className="me-2" /> Classes
             </button>
           </li>
-          {/* Additional links can be added here */}
         </ul>
       </div>
 
@@ -103,6 +123,7 @@ const TopicList = () => {
               <tr>
                 <th>ID</th>
                 <th>Topic Name</th>
+                <th>Created By</th>
                 <th>Date Created</th>
                 <th>Difficulty</th>
                 <th>Actions</th>
@@ -120,11 +141,8 @@ const TopicList = () => {
                   <tr key={topic.id}>
                     <td>{topic.id || 'N/A'}</td>
                     <td>{topic.topicname || 'N/A'}</td>
-                    <td>
-                      {topic.datecreated
-                        ? new Date(topic.datecreated).toLocaleString() // Show date and time
-                        : 'N/A'}
-                    </td>
+                    <td>{topic.teacher_username || 'N/A'}</td>
+                    <td>{topic.datecreated ? new Date(topic.datecreated).toLocaleString() : 'N/A'}</td>
                     <td>{topic.difficulty || 'N/A'}</td>
                     <td>
                       <div className="d-flex gap-2">
@@ -137,7 +155,7 @@ const TopicList = () => {
                         </button>
 
                         <button
-                          className="btn btn-warning"
+                          className="btn btn-primary"
                           style={{ width: '100px' }}
                           onClick={() => navigate(`/view-topic/${topic.id}`)}
                         >

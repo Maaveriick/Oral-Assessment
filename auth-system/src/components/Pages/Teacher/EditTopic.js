@@ -1,257 +1,340 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const EditTopic = () => {
-    const { id } = useParams();
-    const [topic, setTopic] = useState({
-        topicname: '',
-        difficulty: '',
-        description: '',
-        video: null,
-        videoUrl: '', // State to hold the video URL
-        questions: [],
+  const { id } = useParams();
+  const [topicName, setTopicName] = useState("");
+  const [difficulty, setDifficulty] = useState("Easy");
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(""); // State to hold video preview URL
+  const [description, setDescription] = useState("");
+  const [questions, setQuestions] = useState([""]);
+  const [username, setUsername] = useState("");
+  const [classes, setClasses] = useState([]);
+  const [selectedClasses, setSelectedClasses] = useState([]);
+  const [generatedQuestionsSet, setGeneratedQuestionsSet] = useState(new Set());
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUsername = () => {
+      const storedUsername = localStorage.getItem("username") || "DefaultTeacher";
+      setUsername(storedUsername);
+    };
+    fetchUsername();
+  }, []);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (username) {
+        try {
+          const response = await axios.get(`http://localhost:5000/classes/teacher/${username}`);
+          setClasses(response.data);
+        } catch (error) {
+          console.error("Error fetching classes:", error);
+        }
+      }
+    };
+    fetchClasses();
+  }, [username]);
+
+  useEffect(() => {
+    const fetchTopic = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/topics/${id}`);
+        const topicData = response.data;
+        setTopicName(topicData.topicname);
+        setDifficulty(topicData.difficulty);
+        setDescription(topicData.description);
+        setQuestions(topicData.questions || [""]);
+        setSelectedClasses(topicData.classes || []);
+      } catch (error) {
+        console.error("Error fetching topic:", error);
+      }
+    };
+    fetchTopic();
+  }, [id]);
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+
+    const validQuestions = questions.filter((question) => question.trim() !== '');
+
+    const formData = new FormData();
+    formData.append("topicname", topicName);
+    formData.append("difficulty", difficulty);
+    formData.append("description", description);
+    formData.append("teacher_username", username);
+
+    selectedClasses.forEach((className) => {
+      formData.append("selectedClasses[]", className);
     });
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [generatedQuestionsSet, setGeneratedQuestionsSet] = useState(new Set());
-    const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchTopic = async () => {
-            try {
-                const topicResponse = await axios.get(`http://localhost:5000/topics/${id}`);
-                setTopic((prev) => ({
-                    ...prev,
-                    ...topicResponse.data,
-                    questions: topicResponse.data.questions || [],
-                    videoUrl: topicResponse.data.videoUrl || '',
-                }));
-            } catch (error) {
-                setError('Error fetching topic. Please try again.');
-                console.error('Error fetching topic:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTopic();
-    }, [id]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setTopic((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-
-        if (file && file.type.startsWith('video/')) {
-            const newVideoUrl = URL.createObjectURL(file);
-
-            if (topic.videoUrl) {
-                URL.revokeObjectURL(topic.videoUrl);
-            }
-
-            setTopic((prev) => ({
-                ...prev,
-                video: file,
-                videoUrl: newVideoUrl,
-            }));
-        } else {
-            setTopic((prev) => ({
-                ...prev,
-                video: null,
-                videoUrl: '',
-            }));
-        }
-    };
-
-    const handleQuestionChange = (index, value) => {
-        const updatedQuestions = [...topic.questions];
-        updatedQuestions[index] = value;
-        setTopic((prev) => ({
-            ...prev,
-            questions: updatedQuestions,
-        }));
-    };
-
-    const addQuestion = () => {
-        setTopic((prev) => ({ ...prev, questions: [...prev.questions, ''] }));
-    };
-
-    const removeQuestion = (index) => {
-        const updatedQuestions = topic.questions.filter((_, i) => i !== index);
-        setTopic((prev) => ({ ...prev, questions: updatedQuestions }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        const formData = new FormData();
-        formData.append('topicname', topic.topicname);
-        formData.append('difficulty', topic.difficulty);
-        formData.append('description', topic.description);
-        if (topic.video) {
-            formData.append('video', topic.video);
-        }
-
-        topic.questions.forEach((question, index) => {
-            if (question) {
-                formData.append(`questions[${index}]`, question);
-            }
-        });
-
-        try {
-            const response = await axios.put(`http://localhost:5000/topics/${id}`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            console.log('Topic Response:', response.data);
-            navigate('/crud-topic');
-        } catch (error) {
-            setError('Error updating topic. Please try again.');
-            console.error('Error updating topic:', error);
-        }
-    };
-
-    const handleBack = () => {
-        navigate('/crud-topic');
-    };
-
-    // Generate Questions
-    const generateQuestions = async () => {
-        if (!topic.topicname || !topic.description) {
-            alert('Please enter a topic name and description before generating questions.');
-            return;
-        }
-
-        try {
-            const response = await axios.post('http://localhost:5000/generate-questions', {
-                topicName: topic.topicname,
-                description: topic.description,
-            });
-
-            const generatedQuestion = response.data.question;
-
-            if (typeof generatedQuestion === 'string' && generatedQuestion.trim() !== '') {
-                if (!generatedQuestionsSet.has(generatedQuestion)) {
-                    setTopic((prev) => ({
-                        ...prev,
-                        questions: [...prev.questions, generatedQuestion],
-                    }));
-                    setGeneratedQuestionsSet((prevSet) => new Set(prevSet).add(generatedQuestion));
-                } else {
-                    alert('This question has already been generated. Please try again.');
-                }
-            } else {
-                alert('Failed to generate a question. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error generating questions:', error);
-        }
-    };
-
-    useEffect(() => {
-        return () => {
-            if (topic.videoUrl) {
-                URL.revokeObjectURL(topic.videoUrl);
-            }
-        };
-    }, [topic.videoUrl]);
-
-    if (loading) {
-        return <div>Loading...</div>;
+    if (videoFile) {
+      formData.append("video", videoFile);
     }
 
-    return (
-        <div className="container">
-            <h1 className="mb-4">Edit Topic</h1>
-            {error && <div className="alert alert-danger">{error}</div>}
-            <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                    <label className="form-label">Topic Name:</label>
-                    <input
-                        type="text"
-                        name="topicname"
-                        className="form-control"
-                        value={topic.topicname}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-                <div className="mb-3">
-                    <label className="form-label">Difficulty:</label>
-                    <select
-                        name="difficulty"
-                        className="form-select"
-                        value={topic.difficulty || ''}
-                        onChange={handleChange}
-                        required
-                    >
-                        <option value="">Select Difficulty</option>
-                        <option value="Easy">Easy</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Hard">Hard</option>
-                    </select>
-                </div>
-                <div className="mb-3">
-                    <label className="form-label">Description:</label>
-                    <textarea
-                        name="description"
-                        className="form-control"
-                        value={topic.description}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-                <div className="mb-3">
-                    <label className="form-label">Upload Video:</label>
-                    <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleFileChange}
-                        className="form-control"
-                    />
-                </div>
-                {topic.videoUrl && (
-                    <div className="mb-3">
-                        <h5>Selected Video:</h5>
-                        <video width="300" controls>
-                            <source src={topic.videoUrl} type="video/mp4" />
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                )}
-                {topic.video_url && (
-                    <div className="mb-3">
-                        <h5>Original Video:</h5>
-                        <video width="300" controls>
-                            <source src={`http://localhost:5000/${topic.video_url}`} type="video/mp4" />
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                )}
-                <div className="mb-3">
-                    <label className="form-label">Questions:</label>
-                    {topic.questions.map((question, index) => (
-                        <div key={index} className="input-group mb-2">
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={question}
-                                onChange={(e) => handleQuestionChange(index, e.target.value)}
-                                placeholder={`Question ${index + 1}`}
-                            />
-                            <button type="button" className="btn btn-danger" onClick={() => removeQuestion(index)}>Remove</button>
-                        </div>
-                    ))}
-                    <button type="button" className="btn btn-secondary" onClick={addQuestion}>Add Question</button>
-                    <button type="button" className="btn btn-info mt-2" onClick={generateQuestions}>Generate Question</button>
-                </div>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
-                <button type="button" className="btn btn-secondary" onClick={handleBack}>Back</button>
-            </form>
-        </div>
+    validQuestions.forEach((question, index) => {
+      formData.append(`questions[${index}]`, question);
+    });
+
+    try {
+      await axios.put(`http://localhost:5000/topics/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      navigate("/crud-topic");
+    } catch (error) {
+      console.error("Error editing topic:", error);
+    }
+  };
+
+  const handleQuestionChange = (index, value) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[index] = value.trim();
+    setQuestions(updatedQuestions);
+  };
+
+  const addQuestion = () => {
+    setQuestions([...questions, ""]);
+  };
+
+  const removeQuestion = (index) => {
+    const updatedQuestions = questions.filter((_, i) => i !== index);
+    const updatedSet = new Set(updatedQuestions);
+    setGeneratedQuestionsSet(updatedSet);
+    setQuestions(updatedQuestions);
+  };
+
+  const handleClassSelection = (className) => {
+    setSelectedClasses((prevSelectedClasses) =>
+      prevSelectedClasses.includes(className)
+        ? prevSelectedClasses.filter((name) => name !== className)
+        : [...prevSelectedClasses, className]
     );
+  };
+
+  const generateQuestions = async () => {
+    if (!topicName || !description) {
+      alert('Please enter a topic name and description before generating questions.');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/generate-questions', {
+        topicName,
+        description,
+      });
+
+      const generatedQuestion = response.data.question;
+
+      if (generatedQuestion && generatedQuestion.trim() !== '') {
+        if (!generatedQuestionsSet.has(generatedQuestion)) {
+          setQuestions((prevQuestions) => [...prevQuestions, generatedQuestion]);
+          setGeneratedQuestionsSet((prevSet) => new Set(prevSet).add(generatedQuestion));
+        } else {
+          alert('This question has already been generated. Please try again.');
+        }
+      } else {
+        alert('Failed to generate a question. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+    }
+  };
+
+  const handleBack = () => {
+    navigate("/crud-topic");
+  };
+
+  // Handle file input and set preview
+  const handleVideoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      const fileURL = URL.createObjectURL(file);
+      setVideoPreview(fileURL); // Set video preview URL
+    }
+  };
+
+  return (
+    <div className="container mt-5">
+      <h1>Edit Topic</h1>
+      <form onSubmit={handleEdit} className="mt-4">
+        <div className="mb-3">
+          <label className="form-label">Topic Name:</label>
+          <input
+            type="text"
+            className="form-control"
+            value={topicName}
+            onChange={(e) => setTopicName(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Difficulty:</label>
+          <select
+            className="form-select"
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            required
+          >
+            <option value="Easy">Easy</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Description:</label>
+          <textarea
+            className="form-control"
+            rows="4"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          ></textarea>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Upload Video:</label>
+          <input
+            type="file"
+            className="form-control"
+            accept="video/*"
+            onChange={handleVideoFileChange}
+          />
+        </div>
+
+        {/* Show video preview if a file is selected */}
+        {videoPreview && (
+          <div className="mb-3">
+            <label className="form-label">Video Preview:</label>
+            <video width="320" height="240" controls>
+              <source src={videoPreview} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        )}
+
+        <div className="mb-3">
+          <label className="form-label">Available Classes</label>
+          <div className="card">
+            <div className="card-body">
+              {classes.length > 0 ? (
+                <ul className="list-group">
+                  {classes.map((classItem) => (
+                    <li
+                      key={classItem.id}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      {classItem.class_name}
+                      {selectedClasses.includes(classItem.class_name) ? (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleClassSelection(classItem.class_name)}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-success btn-sm"
+                          onClick={() => handleClassSelection(classItem.class_name)}
+                        >
+                          Add
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No classes available.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Selected classes table */}
+        <div className="mb-3">
+          <label className="form-label">Selected Classes</label>
+          {selectedClasses.length > 0 ? (
+            <table className="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Class Name</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedClasses.map((className, index) => (
+                  <tr key={index}>
+                    <td>{className}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() =>
+                          setSelectedClasses(
+                            selectedClasses.filter((item) => item !== className)
+                          )
+                        }
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No classes selected.</p>
+          )}
+        </div>
+
+        {/* Questions input */}
+        <div className="mb-3">
+          <label className="form-label">Questions:</label>
+          {questions.map((question, index) => (
+            <div key={index} className="mb-2">
+              <input
+                type="text"
+                className="form-control"
+                value={question}
+                onChange={(e) => handleQuestionChange(index, e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="btn btn-danger btn-sm mt-2"
+                onClick={() => removeQuestion(index)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn btn-primary mt-2" onClick={addQuestion}>
+            Add Question
+          </button>
+        </div>
+
+        <button type="button" className="btn btn-secondary" onClick={generateQuestions}>
+          Generate Questions
+        </button>
+
+        <div className="mt-3">
+          <button type="button" className="btn btn-light" onClick={handleBack}>
+            Back
+          </button>
+          <button type="submit" className="btn btn-primary ms-2">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default EditTopic;

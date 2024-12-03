@@ -13,12 +13,12 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 app.use(cors());
-
+app.use(express.urlencoded({ extended: true }));
 // Database connection
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'jernkeet',
+  database: '',
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
@@ -173,7 +173,7 @@ app.get('/students/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const student = await pool.query('SELECT id, username FROM users WHERE id = $1', [id]);
+    const student = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [id]);
     if (student.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -195,22 +195,123 @@ app.get('/teachers', async (req, res) => {
   }
 });
 
+// Delete a teacher by ID
+app.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const client = await pool.connect();
+  try {
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Fetch teacher details
+    const userResult = await client.query('SELECT username, email FROM users WHERE id = $1 AND role = $2', [id, 'Teacher']);
+    if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    const { username, email } = userResult.rows[0];
+
+    // Delete associated records
+    await client.query('DELETE FROM classes WHERE teacher_username = $1', [username]);
+    await client.query('DELETE FROM feedback WHERE teacher_username = $1', [username]);
+    await client.query('DELETE FROM topic WHERE teacher_username = $1', [username]);
+    await client.query('DELETE FROM assessment_sessions WHERE username = $1', [username]);
+
+    // Delete teacher from users table
+    await client.query('DELETE FROM users WHERE id = $1', [id]);
+
+    // Commit transaction
+    await client.query('COMMIT');
+
+    res.status(200).json({ message: 'Teacher and associated data deleted successfully.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'An error occurred while deleting the teacher.' });
+  } finally {
+    client.release();
+  }
+});
+
+app.delete('/students/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Fetch student details
+    const userResult = await client.query(
+      'SELECT id, username, email FROM users WHERE id = $1 AND role = $2',
+      [id, 'Student']
+    );
+    if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Extract username and email
+    const { username, email } = userResult.rows[0];
+
+    // Delete associated records from assessment_sessions
+    await client.query('DELETE FROM assessment_sessions WHERE user_id = $1', [id]);
+
+    // Delete associated records from feedback
+    await client.query('DELETE FROM feedback WHERE user_id = $1', [id]);
+
+    // Delete student from users table
+    await client.query('DELETE FROM users WHERE id = $1', [id]);
+    // Remove student from all classes
+    await client.query(`
+      UPDATE classes
+      SET students = (
+        SELECT jsonb_agg(student) 
+        FROM jsonb_array_elements(students) AS student
+        WHERE student->>'username' != $1::TEXT AND student->>'email' != $2::TEXT
+      )
+      WHERE students @> jsonb_build_array(jsonb_build_object('username', $1::TEXT, 'email', $2::TEXT))
+    `, [username, email]);  // Pass username and email as parameters to the query
+
+    // Commit transaction
+    await client.query('COMMIT');
+
+    res.status(200).json({ message: 'Student and associated data deleted successfully.' });
+  } catch (err) {
+    // Log the error to the console
+    console.error('Error during delete operation:', err);
+
+    // Rollback the transaction
+    await client.query('ROLLBACK');
+
+    // Respond with a more specific error message
+    res.status(500).json({ error: 'An error occurred while deleting the student. ' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
+
 // CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
-  const { topicname, difficulty, description, questions } = req.body;
+  const { topicname, difficulty, description, teacher_username, questions, classes } = req.body;
   const videoUrl = req.file ? req.file.path : null;
   const currentDate = new Date().toISOString();
 
   try {
-    // Prepare the questions as an array
+    // Ensure that the 'classes' field is passed as an array.
+    const classesArray = classes ? (Array.isArray(classes) ? classes : [classes]) : [];
+
+    // Convert questions into an array if it's not already
     const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
 
     const topicResult = await pool.query(
-      'INSERT INTO topic (topicname, difficulty, description, video_url, datecreated, questions) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [topicname, difficulty, description, videoUrl, currentDate, questionsArray]
+      'INSERT INTO topic (topicname, difficulty, description, teacher_username, video_url, datecreated, questions, classes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray]
     );
 
-    res.status(201).json({ message: 'Topic created successfully with questions' });
+    res.status(201).json({ message: 'Topic created successfully with questions and classes' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -218,15 +319,20 @@ app.post('/topics', upload.single('video'), async (req, res) => {
 });
 
 
+
+
 app.get('/topics', async (req, res) => {
+  const loggedInUser = req.headers['username']; // Assuming the username is sent in the request header
+
   try {
-    const topics = await pool.query('SELECT * FROM topic');
+    const topics = await pool.query('SELECT * FROM topic WHERE teacher_username = $1', [loggedInUser]);
     res.json(topics.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
+
 
 app.get('/topics/:id', async (req, res) => {
   const { id } = req.params;
@@ -238,6 +344,7 @@ app.get('/topics/:id', async (req, res) => {
       return res.status(404).json({ message: 'Topic not found' });
     }
 
+
     res.json(topic.rows[0]);
   } catch (err) {
     console.error(err.message);
@@ -248,26 +355,63 @@ app.get('/topics/:id', async (req, res) => {
 
 
 app.put('/topics/:id', upload.single('video'), async (req, res) => {
-  const { id } = req.params;
-  const { topicname, difficulty, description, questions } = req.body; // Include questions here
-  const videoUrl = req.file ? req.file.path : null;
+  const { topicname, difficulty, description, teacher_username, questions, selectedClasses } = req.body;
+  const videoUrl = req.file ? req.file.path : req.body.videoUrl || null;
   const currentDate = new Date().toISOString();
+  const topicId = req.params.id;
 
   try {
-    // Prepare the questions as an array
+    // Ensure selectedClasses is an array (no need for JSON.parse if it's already an array)
+    const classesArray = Array.isArray(selectedClasses) ? selectedClasses : [];
+
+    // Convert questions into an array if it's not already
     const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
 
-    await pool.query(
-      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, video_url = COALESCE($4, video_url), datecreated = $5, questions = $6 WHERE id = $7',
-      [topicname, difficulty, description, videoUrl, currentDate, questionsArray, id]
+    const topicResult = await pool.query(
+      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, teacher_username = $4, video_url = $5, datecreated = $6, questions = $7, classes = $8 WHERE id = $9',
+      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray, topicId]
     );
 
-    res.json({ message: 'Topic updated successfully' });
+    res.status(200).json({ message: 'Topic updated successfully with questions and classes' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
+
+app.get('/topics/student/:username/:email', async (req, res) => {
+  const { username, email } = req.params; // Here email comes from the URL
+
+  try {
+    // Step 1: Get the student's class based on their username and email
+    const classResult = await pool.query(
+      'SELECT class_name FROM classes WHERE students @> $1::jsonb',
+      [JSON.stringify([{ username, email }])]
+    );
+
+    if (classResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Student not found in any class.' });
+    }
+
+    const className = classResult.rows[0].class_name;
+
+    // Step 2: Fetch topics assigned to this class
+    const topicResult = await pool.query(
+      'SELECT * FROM topic WHERE $1 = ANY(classes)',
+      [className]
+    );
+
+    if (topicResult.rows.length > 0) {
+      res.status(200).json(topicResult.rows);
+    } else {
+      res.status(404).json({ message: 'No topics assigned to this class.' });
+    }
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 app.delete('/topics/:id', async (req, res) => {
@@ -284,25 +428,35 @@ app.delete('/topics/:id', async (req, res) => {
 
 // CRUD for Feedback
 app.post('/feedbacks', async (req, res) => {
-  const { username, teacher_username, topicId, attempt_count, feedback } = req.body; // Get both student and teacher usernames
+  const { username, teacher_username, topicId, attempt_count, feedback, user_id } = req.body; // Get user_id from the request
+
+  console.log('Received Feedback:', req.body); // Log the incoming request for debugging
 
   // Check if all required fields are provided
-  if (!teacher_username || !username || !feedback) {
-    return res.status(400).send('Teacher username, student username, and feedback are required');
+  if (!teacher_username || !username || !feedback || !user_id) {
+    return res.status(400).send('Teacher username, student username, feedback, and user_id are required');
   }
 
   try {
-    // Insert feedback into the database with both teacher and student usernames
-    await pool.query(
-      'INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text) VALUES ($1, $2, $3, $4, $5)',
-      [username, teacher_username, topicId, attempt_count, feedback] // Use teacher_username here
+    // Insert feedback into the database with both teacher and student usernames and user_id
+    const client = await pool.connect();
+    await client.query(
+      'INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, user_id) VALUES ($1, $2, $3, $4, $5, $6)',
+      [username, teacher_username, topicId, attempt_count, feedback, user_id] // Include the user_id here
     );
+
+    client.release();
+
     res.status(200).send('Feedback created successfully');
   } catch (error) {
     console.error('Error creating feedback:', error);
     res.status(500).send('Server error');
   }
 });
+
+
+
+
 
 app.get('/feedbacks', async (req, res) => {
   try {
@@ -517,25 +671,38 @@ app.post('/ai_response', async (req, res) => {
 
 // Chat Logs
 app.post('/end_session', async (req, res) => {
-  const { username, topicId, generatedQuestion, responses, datetime } = req.body;
+  const { email, topicId, generatedQuestion, responses, datetime } = req.body;
 
   try {
     const client = await pool.connect();
+
+    // Fetch user details based on email (including user_id and username)
+    const userResult = await client.query(
+      `SELECT id, username FROM users WHERE email = $1`,
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const userId = userResult.rows[0].id;
+    const username = userResult.rows[0].username;
 
     // Fetch the current attempt count for this user and topic
     const result = await client.query(
       `SELECT MAX(attempt_count) AS max_attempts 
        FROM assessment_sessions 
-       WHERE username = $1 AND topic_id = $2`,
-      [username, topicId]
+       WHERE user_id = $1 AND topic_id = $2`,
+      [userId, topicId]
     );
     const currentAttempts = result.rows[0]?.max_attempts || 0;
 
-    // Insert the session with incremented attempt count
+    // Insert the session with incremented attempt count, user_id, and username
     await client.query(
-      `INSERT INTO assessment_sessions (username, topic_id, question, responses, datetime, attempt_count)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1]
+      `INSERT INTO assessment_sessions (user_id, username, topic_id, question, responses, datetime, attempt_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1]
     );
 
     client.release();
@@ -546,28 +713,42 @@ app.post('/end_session', async (req, res) => {
   }
 });
 
+
+
+
 app.post('/attempts', async (req, res) => {
   const { username, topicId } = req.body;
 
   try {
     const client = await pool.connect();
 
-    // Fetch only attempt count and datetime
-    const result = await client.query(
-      `SELECT attempt_count, datetime 
+    // Fetch attempts including user_id from the assessment_sessions table
+    const attemptsResult = await client.query(
+      `SELECT user_id, attempt_count, datetime
        FROM assessment_sessions 
        WHERE username = $1 AND topic_id = $2 
        ORDER BY attempt_count ASC`,
-      [username, topicId]
+      [username, topicId]  // Use username and topicId directly
     );
 
+    // Check if attempts are found
+    if (attemptsResult.rows.length === 0) {
+      return res.status(404).send({ error: 'No attempts found for this user and topic' });
+    }
+
+    console.log('Fetched attempts:', attemptsResult.rows); // Log the fetched attempts
+
     client.release();
-    res.status(200).json(result.rows);
+    res.status(200).json(attemptsResult.rows); // Return the attempts data including user_id
   } catch (error) {
     console.error('Error fetching attempts:', error);
     res.status(500).send({ error: 'Failed to fetch attempts.' });
   }
 });
+
+
+
+
 
 app.post('/get_attempt_details', async (req, res) => {
   const { username, topicId, attempt_count } = req.body;
@@ -575,9 +756,9 @@ app.post('/get_attempt_details', async (req, res) => {
   try {
     const client = await pool.connect();
 
-    // Fetch details for a specific attempt
+    // Fetch details for a specific attempt, including user_id
     const result = await client.query(
-      `SELECT question, responses, datetime 
+      `SELECT username, user_id, question, responses, datetime 
        FROM assessment_sessions 
        WHERE username = $1 AND topic_id = $2 AND attempt_count = $3`,
       [username, topicId, attempt_count]
@@ -586,7 +767,7 @@ app.post('/get_attempt_details', async (req, res) => {
     client.release();
 
     if (result.rows.length > 0) {
-      res.status(200).json(result.rows[0]); // Send the specific attempt details
+      res.status(200).json(result.rows[0]); // Send the specific attempt details, including user_id
     } else {
       res.status(404).json({ error: 'Attempt not found.' });
     }
@@ -851,10 +1032,6 @@ app.get('/api/student/attempts/:username', async (req, res) => {
       res.status(500).json({ error: 'Failed to fetch data from the database.' });
   }
 });
-
-
-
-
 
 
 // Listening on port 5000

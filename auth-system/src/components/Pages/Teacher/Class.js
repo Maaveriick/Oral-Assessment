@@ -10,7 +10,6 @@ import { FaChalkboardTeacher} from 'react-icons/fa'; // Add icons for visual app
 
 const Class = () => {
   const [classes, setClasses] = useState([]);
-  const [error, setError] = useState('');
   const tableRef = useRef(null);
   const navigate = useNavigate();
 
@@ -31,7 +30,7 @@ const Class = () => {
         setClasses(response.data);
       } catch (err) {
         console.error('Error fetching classes:', err);
-        setError('An error occurred while fetching classes.');
+        // No need to set error state, as we're handling the case of no classes assigned below
       }
     };
 
@@ -79,7 +78,16 @@ const Class = () => {
               <FaChalkboardTeacher className="me-2" /> Topic
             </button>
           </li>
-          {/* Additional links can be added here */}
+          
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/class")}
+            >
+              <FaChalkboardTeacher className="me-2" /> Classes
+            </button>
+          </li>
         </ul>
       </div>
 
@@ -87,41 +95,43 @@ const Class = () => {
       <div className="flex-fill p-4">
         <h1 className="mb-4">Your Classes</h1>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        <div className="overflow-auto">
-          <table
-            id="classesTable"
-            ref={tableRef}
-            className="table table-bordered table-striped"
-          >
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Class Name</th>
-                <th>Teacher Username</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {classes.map((classItem) => (
-                <tr key={classItem.id}>
-                  <td>{classItem.id}</td>
-                  <td>{classItem.class_name}</td>
-                  <td>{classItem.teacher_username}</td>
-                  <td>
-                    <button
+        {classes.length === 0 ? (
+          <div className="alert alert-info">No class assigned to you yet.</div>
+        ) : (
+          <div className="overflow-auto">
+            <table
+              id="classesTable"
+              ref={tableRef}
+              className="table table-bordered table-striped"
+            >
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Class Name</th>
+                  <th>Teacher Username</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((classItem) => (
+                  <tr key={classItem.id}>
+                    <td>{classItem.id}</td>
+                    <td>{classItem.class_name}</td>
+                    <td>{classItem.teacher_username}</td>
+                    <td>
+                      <button
                         className="btn btn-primary"
                         onClick={() => navigate(`/feedback-list?classId=${classItem.id}`)}
-                    >
+                      >
                         View Details
-                    </button>
+                      </button>
                     </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

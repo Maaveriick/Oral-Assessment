@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { FaChalkboardTeacher, FaSignOutAlt } from "react-icons/fa"; // Importing the icon for the sidebar
+import { FaChalkboardTeacher, FaSignOutAlt, FaClipboardList, FaUsers } from 'react-icons/fa'; // Importing the icon for the sidebar
 
 const ClassList = ({ onLogout }) => {
   const [classes, setClasses] = useState([]); // State for storing classes
@@ -34,10 +34,7 @@ const ClassList = ({ onLogout }) => {
   return (
     <div className="d-flex">
       {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{ width: "250px", height: "100vh" }}
-      >
+      <div className="sidebar bg-dark text-white p-4" style={{ width: "250px", height: "100vh" }}>
         <h2
           className="text-center mb-4 cursor-pointer"
           onClick={() => navigate("/homeadmin")} // Navigate to HomeAdmin on click
@@ -45,19 +42,44 @@ const ClassList = ({ onLogout }) => {
         >
           Admin Dashboard
         </h2>
-
         <ul className="nav flex-column">
           {/* Sidebar links */}
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/crud-class")}
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/crud-class')}
             >
               <FaChalkboardTeacher className="me-2" /> Manage Classes
             </button>
           </li>
-          {/* Additional links can be added here */}
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/rubrics')}
+            >
+              <FaClipboardList className="me-2" /> Manage Rubrics
+            </button>
+          </li>
+          <li className="nav-item">
+        <button
+          className="nav-link text-white"
+          style={{ background: 'none', border: 'none' }}
+          onClick={() => navigate('/teacherlist')}
+        >
+          <FaUsers className="me-2" /> Teacher List
+        </button>
+      </li>
+          <li className="nav-item">
+            <button
+              className="nav-link text-white"
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/studentlist')}
+            >
+              <FaUsers className="me-2" /> Student List
+            </button>
+          </li>
         </ul>
 
         {/* Logout Button */}
@@ -67,7 +89,6 @@ const ClassList = ({ onLogout }) => {
           </button>
         </div>
       </div>
-
       {/* Main Content Area */}
       <div className="container-fluid d-flex flex-column align-items-start p-4">
         <div className="text-left w-100">
@@ -97,13 +118,13 @@ const ClassList = ({ onLogout }) => {
                         <td>{cls.teacher_username}</td>
                         <td>
                           <button
-                            className="btn btn-info me-2"
+                            className="btn btn-primary me-2"
                             onClick={() => navigate(`/view-class/${cls.id}`)}
                           >
                             View
                           </button>
                           <button
-                            className="btn btn-warning me-2"
+                            className="btn btn-primary me-2"
                             onClick={() => navigate(`/edit-class/${cls.id}`)}
                           >
                             Edit

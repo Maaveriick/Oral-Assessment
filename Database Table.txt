@@ -27,6 +27,12 @@ CREATE TABLE topic (
     questions TEXT[] 
 );
 
+ALTER TABLE topic
+ADD COLUMN classes TEXT[];
+
+ALTER TABLE topic
+Add COLUMN teacher_username VARCHAR(255);
+
 assessment_sessions,
 
 CREATE TABLE assessment_sessions (
@@ -40,6 +46,11 @@ CREATE TABLE assessment_sessions (
 
 ALTER TABLE assessment_sessions ADD COLUMN attempt_count INTEGER DEFAULT 0;
 
+-- For assessment_sessions table
+ALTER TABLE assessment_sessions
+ADD COLUMN user_id INT,
+ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id);
+
 
 feedback,
 
@@ -51,6 +62,11 @@ CREATE TABLE feedback (
   attempt_count INT NOT NULL,
   feedback_text TEXT NOT NULL
 );
+
+-- For feedback table
+ALTER TABLE feedback
+ADD COLUMN user_id INT,
+ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id);
 
 rubrics,
 

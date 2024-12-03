@@ -15,23 +15,30 @@ const OralAssessmentHome = () => {
 
   // Fetch topics from the API when the component mounts
   useEffect(() => {
-    const fetchTopics = async () => {
+    const fetchTopicsForStudent = async () => {
+      const username = localStorage.getItem('username'); // Get logged-in user's username
+      const email = localStorage.getItem('email');
+console.log('Email from localStorage:', email); // Check if email is retrieved correctly
+
+
+      console.log('Username:', username); // Check if the username is correct
       try {
-        const response = await fetch('http://localhost:5000/topics'); // Adjust the URL if necessary
+        const response = await fetch(`http://localhost:5000/topics/student/${username}/${email}`);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+  
         const data = await response.json();
-        setTopics(data);
+        setTopics(data); // Update topics state with filtered topics
       } catch (error) {
         console.error('Error fetching topics:', error);
+        setTopics([]); // Clear topics on error
       }
     };
-
-    // Log the signed-in user
-    const username = localStorage.getItem('username');
-    console.log(`Signed in as: ${username}`); // Log the username
-
-    fetchTopics();
+  
+    fetchTopicsForStudent();
   }, []);
-
+  
   // Handle topic selection
   const handleTopicSelect = async (topic) => {
     setSelectedTopic(topic);
@@ -143,9 +150,9 @@ const OralAssessmentHome = () => {
   };
 
   const handleEndSession = async () => {
-    const username = localStorage.getItem('username'); // Retrieve the username from localStorage
+    const email = localStorage.getItem('email'); // Retrieve the email from localStorage
     const sessionData = {
-      username,
+      email,
       topicId: selectedTopic.id,
       generatedQuestion,
       responses: chatHistory,
@@ -163,11 +170,9 @@ const OralAssessmentHome = () => {
   
       if (response.ok) {
         alert('Session data saved successfully.');
-        setChatHistory([]);
-        setGeneratedQuestion('');
-        setSelectedTopic(null);
       } else {
-        console.error('Failed to save session:', response.statusText);
+        const errorData = await response.json();
+        console.error('Failed to save session:', errorData);
         alert('Failed to save session.');
       }
     } catch (error) {
@@ -175,6 +180,7 @@ const OralAssessmentHome = () => {
       alert('An error occurred while saving the session.');
     }
   };
+  
   
 
   return (

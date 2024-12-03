@@ -11,10 +11,17 @@ import { FaChalkboardTeacher } from 'react-icons/fa'; // Add icons for visual ap
 const AttemptsPage = () => {
   const { username, topicId } = useParams();
   const [attempts, setAttempts] = useState([]);
+  const [studentId, setStudentId] = useState(null); // New state to store student.id
   const tableRef = useRef(null);
   const navigate = useNavigate();
 
-  // Fetch attempts on mount
+  // Log the signed-in user from localStorage
+  useEffect(() => {
+    const loggedInUser = localStorage.getItem('username');
+    console.log('Logged in user:', loggedInUser);
+  }, []); // Log on component mount
+
+  // Fetch attempts and student.id on mount
   useEffect(() => {
     const fetchAttempts = async () => {
       try {
@@ -22,7 +29,12 @@ const AttemptsPage = () => {
           username,
           topicId,
         });
-        setAttempts(response.data); // Ensure API returns the correct data structure
+
+        setAttempts(response.data); // Save the attempts
+        if (response.data.length > 0) {
+          // Save student id from the first attempt
+          setStudentId(response.data[0].id);
+        }
       } catch (error) {
         console.error('Error fetching attempts:', error);
       }
@@ -46,7 +58,7 @@ const AttemptsPage = () => {
     }
   }, [attempts]);
 
-  // Delete feedback using `attempt_count`
+  // Delete feedback using attempt_count
   const deleteFeedback = async (username, topicId, attempt_count) => {
     try {
       await axios.delete('http://localhost:5000/feedbacks', {
@@ -69,53 +81,33 @@ const AttemptsPage = () => {
     }
   };
 
-  // Log the logged-in user details to the console
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user')); // Retrieve user data from localStorage
-    if (user) {
-      console.log('Logged in as:', user.username); // Log the logged-in user's username to the console
-    } else {
-      console.log('No user logged in');
-    }
-  }, []);
-
   return (
     <div className="d-flex">
       {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{ width: "250px", height: "100vh" }}
-      >
-        <h2
-          className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate("/hometeacher")} // Navigate to HomeAdmin on click
-          style={{ cursor: "pointer" }} // Optional: Adds cursor pointer to indicate it's clickable
-        >
+      <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
+        <h2 className="text-center mb-4 cursor-pointer" onClick={() => navigate('/hometeacher')}>
           Teacher Navigation
         </h2>
-
         <ul className="nav flex-column">
           {/* Sidebar links */}
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/crud-topic")}
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/crud-topic')}
             >
               <FaChalkboardTeacher className="me-2" /> Topic
             </button>
           </li>
-
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/class")}
+              style={{ background: 'none', border: 'none' }}
+              onClick={() => navigate('/class')}
             >
               <FaChalkboardTeacher className="me-2" /> Class
             </button>
           </li>
-          {/* Additional links can be added here */}
         </ul>
       </div>
 
@@ -123,11 +115,9 @@ const AttemptsPage = () => {
       <div className="flex-fill p-4">
         <h1>Attempts for {username} on Topic ID: {topicId}</h1>
 
-        <table
-          id="attemptsTable"
-          ref={tableRef}
-          className="table table-bordered table-striped"
-        >
+        {studentId && <p>Student ID: {studentId}</p>} {/* Display Student ID */}
+
+        <table id="attemptsTable" ref={tableRef} className="table table-bordered table-striped">
           <thead>
             <tr>
               <th>Attempt Number</th>

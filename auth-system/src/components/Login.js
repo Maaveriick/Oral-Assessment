@@ -12,7 +12,7 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
@@ -21,23 +21,23 @@ const Login = ({ onLoginSuccess }) => {
         },
         body: JSON.stringify({ email, password, role }),
       });
-
+  
       if (response.ok) {
         const data = await response.json();
-        const { username, role } = data;
-
-        // Store the username in local storage
+        const { username, role } = data; 
+  
+        // Store in local storage
         localStorage.setItem('username', username); // Save username
-
+        localStorage.setItem('email', email); // Save email in localStorage
+  
         onLoginSuccess(username, role); // Pass both username and role to parent
-
+  
         // Navigate based on the role
         if (role === 'Student') {
           navigate('/homestudent');
         } else if (role === 'Teacher') {
           navigate('/hometeacher');
-        }
-        else if (role === 'Admin') {
+        } else if (role === 'Admin') {
           navigate('/homeadmin');
         }
       } else {
@@ -48,7 +48,7 @@ const Login = ({ onLoginSuccess }) => {
       setError('Failed to login');
     }
   };
-
+  
   // Handle forgot password navigation
   const handleForgotPassword = () => {
     navigate('/forgot-password'); // Navigate to Forgot Password page
