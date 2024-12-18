@@ -1,13 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const HomeStudent = ({ username, onLogout }) => {
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Log the username when the component renders
+  // Fetch announcements based on the username (student)
   useEffect(() => {
-    console.log('Signed in as:', username);
+    const fetchAnnouncements = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/student/announcements/${username}`);
+        setAnnouncements(response.data);  // Store the fetched announcements
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching announcements:', err);
+        setError('Error fetching announcements');
+        setLoading(false);
+      }
+    };
+
+    if (username) {
+      fetchAnnouncements();
+    }
   }, [username]);
 
   return (
@@ -38,7 +56,7 @@ const HomeStudent = ({ username, onLogout }) => {
                 </li>
                 <li>
                   <button className="btn btn-outline-primary w-100 mb-2" onClick={() => navigate('/student-feedback')}>
-                  Feedback
+                    Feedback
                   </button>
                 </li>
                 <li>
@@ -66,10 +84,24 @@ const HomeStudent = ({ username, onLogout }) => {
         <div className="col-lg-8 col-md-7 col-12 p-3">
           <div className="card">
             <div className="card-body">
-              <h5 className="card-title">Announcement</h5>
-              <p className="card-text">
-                Stay tuned for the upcoming oral assessment schedule! More details will be shared soon.
-              </p>
+              <h5 className="card-title">Announcements</h5>
+              {loading ? (
+                <p>Loading announcements...</p>
+              ) : error ? (
+                <p>{error}</p>
+              ) : announcements.length === 0 ? (
+                <p>No announcements found.</p>
+              ) : (
+                announcements.map((announcement) => (
+                  <div key={announcement.id} className="card mb-3">
+                    <div className="card-body">
+                      <h5 className="card-title">{announcement.title}</h5>
+                      <p className="card-text">{announcement.content}</p>
+                      <small className="text-muted">Posted on {new Date(announcement.date_posted).toLocaleString()}</small>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

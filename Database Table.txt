@@ -84,3 +84,13 @@ CREATE TABLE classes (
     teacher_username VARCHAR(100) NOT NULL,
     students JSONB NOT NULL -- To store an array of student usernames and emails
 );
+
+
+CREATE TABLE announcements (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    class_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    date_posted TIMESTAMP NOT NULL
+);

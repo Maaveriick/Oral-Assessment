@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const EditAnnouncement = () => {
-  const { announcementId } = useParams(); // Get the announcement ID from the URL
+  const { classId, announcementId } = useParams(); // Get classId and announcementId from the URL
   const [announcementDetails, setAnnouncementDetails] = useState(null); // Store announcement details
   const [title, setTitle] = useState(''); // Store title
   const [content, setContent] = useState(''); // Store content
-  const [classId, setClassId] = useState(''); // Store class ID
+  const [classIdState, setClassIdState] = useState(classId); // Store class ID for select
   const [classes, setClasses] = useState([]); // Store available classes
   const [error, setError] = useState(''); // Store error messages
   const navigate = useNavigate();
@@ -22,10 +22,10 @@ const EditAnnouncement = () => {
         setAnnouncementDetails(data);
         setTitle(data.title);
         setContent(data.content);
-        setClassId(data.class_id); // Set the class_id from the fetched announcement
+        setClassIdState(data.class_id); // Set class_id from fetched announcement
 
         // Fetch the available classes for the dropdown
-        const classResponse = await axios.get('http://localhost:5000/classes');
+        const classResponse = await axios.get(`http://localhost:5000/classes`);
         setClasses(classResponse.data); // Set available classes
       } catch (err) {
         console.error('Error fetching announcement:', err);
@@ -43,12 +43,12 @@ const EditAnnouncement = () => {
       const updatedAnnouncement = {
         title,
         content,
-        class_id: classId, // Add class_id to the update request
+        class_id: classIdState, // Use the class_id from the state
       };
 
       await axios.put(`http://localhost:5000/announcements/${announcementId}`, updatedAnnouncement);
       alert('Announcement updated successfully!');
-      navigate('/crud-announcement'); // Redirect to the announcement list page
+      navigate(`/crud-announcement/${classIdState}`); // Redirect to the class's announcement list
     } catch (err) {
       console.error('Error updating announcement:', err);
       setError(err.response?.data?.message || 'Error updating announcement.');
@@ -94,8 +94,8 @@ const EditAnnouncement = () => {
                     <select
                       id="classId"
                       className="form-control"
-                      value={classId}
-                      onChange={(e) => setClassId(e.target.value)}
+                      value={classIdState}
+                      onChange={(e) => setClassIdState(e.target.value)}
                     >
                       <option value="">Select Class</option>
                       {classes.map((cls) => (
@@ -116,7 +116,7 @@ const EditAnnouncement = () => {
               {/* "Back to Announcements" button */}
               <button
                 className="btn btn-secondary w-100 mt-3"
-                onClick={() => navigate('/crud-announcement')} // Navigate to the announcements list
+                onClick={() => navigate(`/crud-announcement/${classIdState}`)} // Navigate back to class's announcement list
               >
                 Back to Announcements
               </button>

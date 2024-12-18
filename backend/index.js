@@ -1034,6 +1034,156 @@ app.get('/api/student/attempts/:username', async (req, res) => {
 });
 
 
+
+
+
+
+// CREATE Announcement
+app.post('/announcements', async (req, res) => {
+  const { title, content, class_id, username } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO announcements (title, content, class_id, username) VALUES ($1, $2, $3, $4) RETURNING id, title, content, class_id, username, date_posted',
+      [title, content, class_id, username]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating announcement:', err);
+    res.status(500).json({ message: 'Error creating announcement' });
+  }
+});
+
+
+app.get('/announcements/class/:classId', async (req, res) => {
+  const { classId } = req.params;
+  try {
+    const announcements = await pool.query(
+      'SELECT * FROM announcements WHERE class_id = $1',
+      [classId]
+    );
+    res.json(announcements.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+// UPDATE Announcement
+app.put('/announcements/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, content, class_id } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE announcements SET title = $1, content = $2, class_id = $3 WHERE id = $4 RETURNING *',
+      [title, content, class_id, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating announcement:', err);
+    res.status(500).json({ message: 'Error updating announcement' });
+  }
+});
+
+// DELETE Announcement
+app.delete('/announcements/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM announcements WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+    res.json({ message: 'Announcement deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting announcement:', err);
+    res.status(500).json({ message: 'Error deleting announcement' });
+  }
+});
+
+
+app.get('/announcements/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT id, title, content, class_id, username, date_posted FROM announcements WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching announcement:', err);
+    res.status(500).json({ message: 'Error fetching announcement' });
+  }
+});
+
+
+
+app.get('/api/student/announcements/:username', async (req, res) => {
+  const username = req.params.username;
+
+  try {
+    // Step 1: Get the class ID of the student using the `classes` table
+    const classQuery = `
+      SELECT c.id AS class_id
+      FROM classes c
+      WHERE EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(c.students) AS student
+        WHERE student->>'username' = $1
+      )
+    `;
+    const classResult = await pool.query(classQuery, [username]);
+
+    if (classResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Student or class not found' });
+    }
+
+    const studentClassId = classResult.rows[0].class_id;
+
+    // Step 2: Fetch announcements for the class
+    const announcementsQuery = `
+      SELECT a.id, a.title, a.content, a.date_posted, a.username AS teacher_username
+      FROM announcements a
+      WHERE a.class_id = $1
+      ORDER BY a.date_posted DESC
+    `;
+    const announcementsResult = await pool.query(announcementsQuery, [studentClassId]);
+
+    if (announcementsResult.rows.length === 0) {
+      return res.status(404).json({ message: 'No announcements found for this class' });
+    }
+
+    res.json(announcementsResult.rows);
+  } catch (error) {
+    console.error('Error fetching announcements:', error); // Log the error to the console
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+// GET /api/teacher/announcements/:username - READ Announcements for a Teacher's Classes
+app.get('/api/teacher/announcements/:username', async (req, res) => {
+  const { username } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM announcements WHERE teacher_username = $1 ORDER BY date_posted DESC',
+      [username]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching announcements:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+
 // Listening on port 5000
 app.listen(5000, () => {
   console.log('Server is running on port 5000');

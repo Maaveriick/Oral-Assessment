@@ -32,6 +32,13 @@ import EditClass from './components/Pages/Admin/EditClass';
 import ViewClass from './components/Pages/Admin/ViewClass';
 
 import Class from './components/Pages/Teacher/Class';
+
+import AnnouncementList from './components/Pages/Teacher/AnnouncementList';
+import CreateAnnouncement from './components/Pages/Teacher/CreateAnnouncement';
+import EditAnnouncement from './components/Pages/Teacher/EditAnnouncement';
+import ViewAnnouncement from './components/Pages/Teacher/ViewAnnouncement';
+import TeacherClasses from './components/Pages/Teacher/TeacherClasses';
+
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
     const [loading, setLoading] = useState(true);
@@ -113,6 +120,13 @@ const App = () => {
                    
                     <Route path="/teacherlist" element={user.role === 'Admin' ? <TeacherList onLogout={handleLogout} /> : <Navigate to="/" />} />
                     <Route path="/studentlist" element={user.role === 'Admin' ? <StudentList onLogout={handleLogout} /> : <Navigate to="/" />} />
+
+                    <Route path="/crud-announcement/:classId" element={user.role === 'Teacher' ? <AnnouncementList onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/create-announcement/:classId" element={user.role === 'Teacher' ? <CreateAnnouncement /> : <Navigate to="/" />} />
+                    <Route path="/edit-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <EditAnnouncement /> : <Navigate to="/" />} />
+                    <Route path="/view-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <ViewAnnouncement /> : <Navigate to="/" />} />
+                    <Route path="/teacher-classes" element={user.role === 'Teacher' ? <TeacherClasses /> : <Navigate to="/" />} />
+
                 </Routes>
             </div>
         </Router>

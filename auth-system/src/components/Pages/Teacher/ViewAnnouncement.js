@@ -3,24 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const ViewAnnouncement = () => {
-  const { announcementId } = useParams(); // Get announcement ID from URL
-  const [announcementDetails, setAnnouncementDetails] = useState(null); // Store announcement details
-  const [className, setClassName] = useState(''); // Store class name based on class_id
-  const [error, setError] = useState(''); // Store errors if any
+  const { announcementId } = useParams();
+  const [announcementDetails, setAnnouncementDetails] = useState(null);
+  const [className, setClassName] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Fetch announcement details from the backend
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        // Fetch the specific announcement
         const response = await axios.get(`http://localhost:5000/announcements/${announcementId}`);
         const data = response.data;
         setAnnouncementDetails(data);
 
-        // Fetch the class name using the class_id
+        // Fetch class details based on class_id from the announcement
         const classResponse = await axios.get(`http://localhost:5000/classes/${data.class_id}`);
-        setClassName(classResponse.data.class_name); // Set the class name
+        setClassName(classResponse.data.class_name);
       } catch (err) {
         console.error('Error fetching announcement:', err);
         setError(err.response?.data?.message || 'Error fetching announcement.');
@@ -57,11 +55,11 @@ const ViewAnnouncement = () => {
                   </div>
                   <div className="mb-3">
                     <h5 className="text-info">Class:</h5>
-                    <p>{className}</p> {/* Display the fetched class name */}
+                    <p>{className}</p>
                   </div>
                   <button
                     className="btn btn-primary w-100"
-                    onClick={() => navigate('/crud-announcement')} // Navigate back to announcement list
+                    onClick={() => navigate(`/crud-announcement/${announcementDetails.class_id}`)} // Navigate back to the class's announcement list using the class_id
                   >
                     Back to Announcements
                   </button>

@@ -1,22 +1,24 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import $ from 'jquery';
 import 'datatables.net';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { FaChalkboardTeacher } from 'react-icons/fa'; // Icons for visual appeal
+import { FaChalkboardTeacher } from 'react-icons/fa';
 
 const AnnouncementList = () => {
+  const { classId } = useParams(); // Use classId from route params
   const [announcements, setAnnouncements] = useState([]);
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
-  // Fetch announcements from the server
+  // Fetch announcements specific to the class
   const fetchAnnouncements = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/announcements');
+      const response = await axios.get(`http://localhost:5000/announcements/class/${classId}`);
+      console.log('Announcements fetched from backend:', response.data);
       setAnnouncements(response.data);
     } catch (error) {
       console.error('Error fetching announcements:', error);
@@ -38,7 +40,7 @@ const AnnouncementList = () => {
 
   useEffect(() => {
     fetchAnnouncements(); // Fetch announcements on component mount
-  }, []);
+  }, [classId]);
 
   useEffect(() => {
     if (announcements.length) {
@@ -52,32 +54,33 @@ const AnnouncementList = () => {
       const confirmDelete = window.confirm('Are you sure you want to delete this announcement?');
       if (confirmDelete) {
         await axios.delete(`http://localhost:5000/announcements/${id}`);
-        setAnnouncements((prevAnnouncements) =>
-          prevAnnouncements.filter((announcement) => announcement.id !== id)
-        );
+        setAnnouncements((prev) => prev.filter((announcement) => announcement.id !== id));
+        alert('Announcement deleted successfully');
       }
     } catch (error) {
       console.error('Error deleting announcement:', error);
+      alert('Error deleting announcement');
     }
+  };
+
+  // Format date for display
+  const formatDate = (date) => {
+    const formattedDate = new Date(date);
+    return !isNaN(formattedDate) ? formattedDate.toLocaleString() : 'Invalid Date';
   };
 
   return (
     <div className="d-flex">
       {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{ width: '250px', height: '100vh' }}
-      >
+      <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
         <h2
-          className="text-center mb-4 cursor-pointer"
+          className="text-center mb-4"
           onClick={() => navigate('/hometeacher')}
           style={{ cursor: 'pointer' }}
         >
           Teacher Navigation
         </h2>
-
         <ul className="nav flex-column">
-          {/* Sidebar links */}
           <li className="nav-item">
             <button
               className="nav-link text-white"
@@ -87,14 +90,16 @@ const AnnouncementList = () => {
               <FaChalkboardTeacher className="me-2" /> Classes
             </button>
           </li>
-          {/* Additional links can be added here */}
         </ul>
       </div>
 
       <div className="flex-fill p-4">
-        <h1 className="mb-4">Announcement List</h1>
+        <h1 className="mb-4">Announcements for Class {classId}</h1>
         <div className="mb-3">
-          <button className="btn btn-success" onClick={() => navigate('/create-announcement')}>
+          <button
+            className="btn btn-success"
+            onClick={() => navigate(`/create-announcement/${classId}`)}
+          >
             Create New Announcement
           </button>
         </div>
@@ -103,8 +108,8 @@ const AnnouncementList = () => {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Announcement Title</th>
-                <th>Date Created</th>
+                <th>Title</th>
+                <th>Date Posted</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -112,7 +117,7 @@ const AnnouncementList = () => {
               {announcements.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="text-center">
-                    No announcements available.
+                    No announcements available for this class.
                   </td>
                 </tr>
               ) : (
@@ -120,32 +125,23 @@ const AnnouncementList = () => {
                   <tr key={announcement.id}>
                     <td>{announcement.id || 'N/A'}</td>
                     <td>{announcement.title || 'N/A'}</td>
-                    <td>
-                      {announcement.datecreated
-                        ? new Date(announcement.datecreated).toLocaleString()
-                        : 'N/A'}
-                    </td>
+                    <td>{formatDate(announcement.date_posted)}</td>
                     <td>
                       <div className="d-flex gap-2">
                         <button
                           className="btn btn-primary"
-                          style={{ width: '100px' }}
-                          onClick={() => navigate(`/edit-announcement/${announcement.id}`)}
+                          onClick={() => navigate(`/edit-announcement/${classId}/${announcement.id}`)}
                         >
                           Edit
                         </button>
-
                         <button
                           className="btn btn-warning"
-                          style={{ width: '100px' }}
-                          onClick={() => navigate(`/view-announcement/${announcement.id}`)}
+                          onClick={() => navigate(`/view-announcement/${classId}/${announcement.id}`)}
                         >
                           View
                         </button>
-
                         <button
                           className="btn btn-danger"
-                          style={{ width: '100px' }}
                           onClick={() => deleteAnnouncement(announcement.id)}
                         >
                           Delete

@@ -37,12 +37,53 @@ const ViewFeedback = () => {
   }, [username, topicId, attempt_count]);
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-8 col-lg-6">
+    <div className="container-fluid bg-light">
+      {/* Full-page Header */}
+      <div className="row bg-primary text-white p-5">
+        <div className="col-12 text-center">
+          <h1 className="mb-0">View Feedback</h1>
+          <h4 className="mb-3">For Attempt #{attempt_count}</h4>
+        </div>
+      </div>
+
+      <div className="row" style={{ minHeight: 'calc(100vh - 120px)' }}>
+        {/* Sidebar on the left */}
+        <div className="col-lg-3 col-md-4 col-12 bg-white p-4 shadow-sm" style={{ height: '100%' }}>
+          <h5 className="mb-4">Menu</h5>
+          <ul className="list-unstyled">
+            <li>
+              <button
+                className="btn btn-outline-primary w-100 mb-3"
+                onClick={() => navigate('/oral-assessment')}
+              >
+                Oral Assessment
+              </button>
+            </li>
+            <li>
+              <button
+                className="btn btn-outline-primary w-100 mb-3"
+                onClick={() => navigate('/student-feedback')}
+              >
+                Feedback
+              </button>
+            </li>
+            <li>
+              <button
+                className="btn btn-danger w-100"
+                onClick={() => navigate('/logout')}
+              >
+                Logout
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        {/* Main content area */}
+        <div className="col-lg-9 col-md-8 col-12 p-5 bg-white shadow-sm" style={{ height: '100%' }}>
           <div className="card shadow-lg border-light">
             <div className="card-body">
               <h2 className="text-center mb-4 text-primary">View Feedback for Attempt #{attempt_count}</h2>
+
               {attemptDetails ? (
                 <>
                   <div className="mb-4">
@@ -63,6 +104,7 @@ const ViewFeedback = () => {
               ) : (
                 <p className="text-muted">Loading attempt details...</p>
               )}
+
               {feedbackDetails ? (
                 <div className="mb-4">
                   <h5 className="text-info">Feedback:</h5>
@@ -71,6 +113,7 @@ const ViewFeedback = () => {
               ) : (
                 <p className="text-muted">Loading feedback details...</p>
               )}
+
               <button
                 className="btn btn-secondary w-100"
                 onClick={() => navigate(-1)}

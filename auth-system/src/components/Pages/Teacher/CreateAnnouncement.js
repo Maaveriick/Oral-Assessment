@@ -8,63 +8,78 @@ const CreateAnnouncement = () => {
   const [selectedClass, setSelectedClass] = useState(''); // To store the selected class
   const [announcementTitle, setAnnouncementTitle] = useState(''); // Title for the announcement
   const [announcementText, setAnnouncementText] = useState(''); // User's announcement text
+  const [errorMessage, setErrorMessage] = useState(''); // For displaying error messages
   const navigate = useNavigate();
 
   // Fetch classes when the component loads
   useEffect(() => {
     const fetchClasses = async () => {
       const teacherUsername = JSON.parse(localStorage.getItem('user'))?.username;
-  
+
       if (!teacherUsername) {
         console.error('No teacher username found in localStorage!');
         return;
       }
-  
+
       try {
         const response = await axios.get('http://localhost:5000/classes', {
           params: {
             username: teacherUsername,
-            user_role: 'teacher',
+            user_role: 'teacher', // Filter classes based on the teacher
           },
         });
-  
-        setClasses(response.data);
+
+        // Filter the classes assigned to the logged-in teacher
+        const assignedClasses = response.data.filter(
+          (classItem) => classItem.teacher_username === teacherUsername
+        );
+
+        setClasses(assignedClasses); // Set the assigned classes
       } catch (error) {
         console.error('Error fetching classes:', error.response?.data || error.message);
       }
     };
-  
+
     fetchClasses();
   }, []);
-  
 
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
-  
+
     const teacherUsername = JSON.parse(localStorage.getItem('user'))?.username;
-    if (!teacherUsername || !selectedClass || !announcementText) {
-      console.error('Required fields are missing');
+    if (!teacherUsername || !selectedClass || !announcementTitle || !announcementText) {
+      setErrorMessage('All fields are required.');
       return;
     }
-  
-    const classId = parseInt(selectedClass, 10); // Ensure class_id is an integer
-  
+
     try {
       await axios.post('http://localhost:5000/announcements', {
-        username: teacherUsername, // Include the username field
-        class_id: classId, // Send the parsed class_id
+        username: teacherUsername,
+        class_id: parseInt(selectedClass, 10), // Ensure class_id is an integer
         title: announcementTitle,
         content: announcementText,
       });
-  
-      // Redirect back to announcements page
-      navigate('/crud-announcement');
+
+      // Redirect back to AnnouncementList with selectedClass
+      navigate(`/crud-announcement/${selectedClass}`);
     } catch (error) {
-      console.error('Error creating announcement:', error.response?.data || error.message);
+      setErrorMessage(error.response?.data || 'Failed to create the announcement.');
     }
   };
-  
-  
+
+  // Back Button Click Handler
+  const handleBackButton = () => {
+    console.log('Selected Class:', selectedClass); // Debugging the selectedClass value
+
+    if (selectedClass) {
+      // Navigate to class-specific announcement list
+      navigate(`/crud-announcement/${selectedClass}`);
+    } else {
+      // Fallback to the general announcement list if selectedClass is empty
+      navigate('/crud-announcement');
+    }
+  };
+
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
@@ -72,6 +87,12 @@ const CreateAnnouncement = () => {
           <div className="card shadow-lg border-light">
             <div className="card-body">
               <h2 className="text-center mb-4 text-primary">Create Announcement</h2>
+
+              {errorMessage && (
+                <div className="alert alert-danger" role="alert">
+                  {errorMessage}
+                </div>
+              )}
 
               <form onSubmit={handleCreateAnnouncement}>
                 {/* Class Selection Dropdown */}
@@ -92,6 +113,7 @@ const CreateAnnouncement = () => {
                     ))}
                   </select>
                 </div>
+
                 {/* Title Input */}
                 <div className="mb-3">
                   <label className="form-label" htmlFor="titleInput">Title:</label>
@@ -126,9 +148,9 @@ const CreateAnnouncement = () => {
               {/* Back button */}
               <button
                 className="btn btn-secondary w-100 mt-3"
-                onClick={() => navigate('/crud-announcement')} // Navigate back to announcements page
+                onClick={handleBackButton} // Navigate back to announcements list
               >
-                Back
+                Back to Announcements
               </button>
             </div>
           </div>
