@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: '',
+  database: 'maverick',
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
@@ -427,46 +427,28 @@ app.delete('/topics/:id', async (req, res) => {
 });
 
 // CRUD for Feedback
+
 app.post('/feedbacks', async (req, res) => {
-  const { username, teacher_username, topicId, attempt_count, feedback, user_id } = req.body; // Get user_id from the request
+  const { username, teacher_username, topicId, attempt_count, feedback, grade, user_id } = req.body;
 
-  console.log('Received Feedback:', req.body); // Log the incoming request for debugging
-
-  // Check if all required fields are provided
-  if (!teacher_username || !username || !feedback || !user_id) {
-    return res.status(400).send('Teacher username, student username, feedback, and user_id are required');
+  if (!username || !teacher_username || !topicId || !attempt_count || !feedback || !grade) {
+    return res.status(400).send('All fields are required');
   }
 
   try {
-    // Insert feedback into the database with both teacher and student usernames and user_id
-    const client = await pool.connect();
-    await client.query(
-      'INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, user_id) VALUES ($1, $2, $3, $4, $5, $6)',
-      [username, teacher_username, topicId, attempt_count, feedback, user_id] // Include the user_id here
+    await pool.query(
+      `INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, grade, user_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [username, teacher_username, topicId, attempt_count, feedback, grade, user_id]
     );
-
-    client.release();
-
-    res.status(200).send('Feedback created successfully');
-  } catch (error) {
-    console.error('Error creating feedback:', error);
-    res.status(500).send('Server error');
-  }
-});
-
-
-
-
-
-app.get('/feedbacks', async (req, res) => {
-  try {
-    const feedbacks = await pool.query('SELECT * FROM feedback');
-    res.json(feedbacks.rows);
+    res.status(201).send('Feedback and grade saved successfully');
   } catch (err) {
-    console.error(err.message);
+    console.error('Error saving feedback:', err.message);
     res.status(500).send('Server error');
   }
 });
+
+
 
 app.post('/feedbacks/details', async (req, res) => {
   const { username, topicId, attempt_count } = req.body;
@@ -486,7 +468,7 @@ app.post('/feedbacks/details', async (req, res) => {
       return res.status(404).json({ message: 'Feedback not found' });
     }
 
-    res.json(feedback.rows[0]);
+    res.json(feedback.rows[0]); // Includes grade in the response
   } catch (err) {
     console.error('Error fetching feedback:', err.message);
     res.status(500).send('Server error');
@@ -494,19 +476,20 @@ app.post('/feedbacks/details', async (req, res) => {
 });
 
 
-app.put('/feedbacks/update', async (req, res) => {
-  const { username, topicId, attempt_count, feedback_text } = req.body;
 
-  if (!username || !topicId || !attempt_count || !feedback_text) {
+app.put('/feedbacks/update', async (req, res) => {
+  const { username, topicId, attempt_count, feedback_text, grade } = req.body;
+
+  if (!username || !topicId || !attempt_count || !feedback_text || !grade) {
     return res.status(400).send('All fields are required');
   }
 
   try {
     await pool.query(
       `UPDATE feedback 
-       SET feedback_text = $1 
-       WHERE username = $2 AND topic_id = $3 AND attempt_count = $4`,
-      [feedback_text, username, topicId, attempt_count]
+       SET feedback_text = $1, grade = $2 
+       WHERE username = $3 AND topic_id = $4 AND attempt_count = $5`,
+      [feedback_text, grade, username, topicId, attempt_count]
     );
     res.status(200).send('Feedback updated successfully');
   } catch (err) {
@@ -523,18 +506,19 @@ app.delete('/feedbacks', async (req, res) => {
   }
 
   try {
-    // Only delete feedback related to the specific attempt
+    // Delete both feedback and grade from the feedback table
     await pool.query(
       `DELETE FROM feedback 
        WHERE username = $1 AND topic_id = $2 AND attempt_count = $3`,
       [username, topicId, attempt_count]
     );
-    res.status(200).json({ message: 'Feedback deleted successfully' });
+    res.status(200).json({ message: 'Feedback and grade deleted successfully' });
   } catch (err) {
-    console.error('Error deleting feedback:', err.message);
+    console.error('Error deleting feedback and grade:', err.message);
     res.status(500).send('Server error');
   }
 });
+
 
 
 // Function to generate AI feedback based on rubric, question, and responses
@@ -1041,6 +1025,11 @@ app.get('/api/student/attempts/:username', async (req, res) => {
 // CREATE Announcement
 app.post('/announcements', async (req, res) => {
   const { title, content, class_id, username } = req.body;
+
+  if (!title || !content || !class_id || !username) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
   try {
     const result = await pool.query(
       'INSERT INTO announcements (title, content, class_id, username) VALUES ($1, $2, $3, $4) RETURNING id, title, content, class_id, username, date_posted',
@@ -1048,10 +1037,16 @@ app.post('/announcements', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error creating announcement:', err);
-    res.status(500).json({ message: 'Error creating announcement' });
+    console.error('Error creating announcement:', err.stack);
+
+    if (err.code === '23502') { // NOT NULL violation
+      res.status(400).json({ message: 'Missing required fields' });
+    } else {
+      res.status(500).json({ message: 'Error creating announcement' });
+    }
   }
 });
+
 
 
 app.get('/announcements/class/:classId', async (req, res) => {

@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const EditFeedback = () => {
   const { username, topicId, attempt_count } = useParams(); // Fetch params
   const [feedback_text, setFeedback] = useState('');
+  const [grade, setGrade] = useState(''); // New state for grade
   const [attemptDetails, setAttemptDetails] = useState(null); // To store attempt details
   const navigate = useNavigate();
 
@@ -27,7 +28,9 @@ const EditFeedback = () => {
           topicId,
           attempt_count,
         });
+
         setFeedback(feedbackResponse.data.feedback_text); // Assuming 'feedback_text' contains the feedback
+        setGrade(feedbackResponse.data.grade); // Assuming 'grade' is included in the response data
       } catch (error) {
         console.error('Error fetching details or feedback:', error);
       }
@@ -48,14 +51,14 @@ const EditFeedback = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-  
+
     const teacherUsername = JSON.parse(localStorage.getItem('user'))?.username; // Get teacher username
-  
+
     if (!teacherUsername) {
       console.error('No teacher username found!');
       return;
     }
-  
+
     try {
       // Log data to confirm it's correct
       console.log({
@@ -64,8 +67,9 @@ const EditFeedback = () => {
         topicId,
         attempt_count,
         feedback_text,
+        grade, // Include the grade in the update
       });
-  
+
       // Send updated feedback to the backend
       await axios.put('http://localhost:5000/feedbacks/update', {
         username,
@@ -73,8 +77,9 @@ const EditFeedback = () => {
         topicId,
         attempt_count,
         feedback_text,
+        grade, // Send the grade as part of the update
       });
-  
+
       navigate(`/attempts/${username}/${topicId}`);
     } catch (error) {
       console.error('Error updating feedback:', error);
@@ -127,16 +132,30 @@ const EditFeedback = () => {
                         required
                       ></textarea>
                     </div>
+
+                    {/* Grade Input */}
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="gradeInput">Grade:</label>
+                      <input
+                        type="text"
+                        id="gradeInput"
+                        className="form-control"
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                        required
+                      />
+                    </div>
+
                     <button type="submit" className="btn btn-primary w-100">Update Feedback</button>
-                    
                   </form>
                 </div>
+
                 <button
-                className="btn btn-secondary w-100"
-                onClick={() => navigate(-1)} // Navigate back to the previous page
-              >
-                Back
-              </button>
+                  className="btn btn-secondary w-100 mt-3"
+                  onClick={() => navigate(-1)} // Navigate back to the previous page
+                >
+                  Back
+                </button>
               </div>
             </div>
           </div>

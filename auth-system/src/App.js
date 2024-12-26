@@ -24,7 +24,7 @@ import AttemptsPage from './components/Pages/Teacher/AttemptsPage';
 import TeacherList from './components/Pages/Admin/TeacherList';
 import StudentList from './components/Pages/Admin/StudentList';
 import StudentFeedback from './components/Pages/Student/StudentFeedback';
-
+import StudentViewFeedback from './components/Pages/Student/StudentViewFeedback'
 import HomeAdmin from './components/Pages/Admin/HomeAdmin';
 import ClassList from './components/Pages/Admin/ClassList';
 import CreateClass from './components/Pages/Admin/CreateClass';
@@ -109,7 +109,7 @@ const App = () => {
                     <Route path="/student-details/:id" element={user.role === 'Teacher' ? <StudentDetails /> : <Navigate to="/" />} />
                     <Route path="/attempts/:username/:topicId" element={user.role === 'Teacher' ? <AttemptsPage /> : <Navigate to="/" />} />
                     <Route path="/student-feedback" element={user.role === 'Student' ? <StudentFeedback username={user.username}  /> : <Navigate to="/" />} />
-                    
+                    <Route path="/studentviewfeedback/:username/:topicId/:attempt_count" element={user.role === 'Student' ? <StudentViewFeedback username={user.username}  /> : <Navigate to="/" />} />
                     {/* Rubrics Page Route */}
                     <Route path="/rubrics" element={user.role === 'Admin' ? <RubricsPage /> : <Navigate to="/" />} />
 

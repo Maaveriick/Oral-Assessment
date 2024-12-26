@@ -69,6 +69,8 @@ ALTER TABLE feedback
 ADD COLUMN user_id INT,
 ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id);
 
+ALTER TABLE feedback ADD COLUMN grade VARCHAR(10);
+
 rubrics,
 
 CREATE TABLE rubrics (
@@ -94,3 +96,6 @@ CREATE TABLE announcements (
     content TEXT NOT NULL,
     date_posted TIMESTAMP NOT NULL
 );
+
+ALTER TABLE announcements
+ALTER COLUMN date_posted SET DEFAULT NOW();

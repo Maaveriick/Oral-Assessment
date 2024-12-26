@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const ViewFeedback = () => {
+const StudentViewFeedback = () => {
   const { username, topicId, attempt_count } = useParams(); // Fetch params
   const [feedbackDetails, setFeedbackDetails] = useState(null); // To store feedback details
   const [attemptDetails, setAttemptDetails] = useState(null); // To store attempt details
@@ -37,6 +37,7 @@ const ViewFeedback = () => {
   }, [username, topicId, attempt_count]);
 
   return (
+    
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-8 col-lg-10">
@@ -109,4 +110,4 @@ const ViewFeedback = () => {
   );
 };
 
-export default ViewFeedback;
+export default StudentViewFeedback;
