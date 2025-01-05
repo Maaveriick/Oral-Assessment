@@ -50,6 +50,15 @@ const HomeTeacher = ({ username, onLogout }) => {
               >
                 <i className="bi bi-bar-chart-line me-2"></i> View Student's Progress
               </Button>
+
+              <Button
+                variant="primary"
+                className="w-100 mt-3"
+                onClick={() => navigate('/performance-management')}
+              >
+                <i className="bi bi-bar-chart-line me-2"></i> Performance Management System
+              </Button>
+              
             </Card.Body>
           </Card>
         </div>

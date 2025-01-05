@@ -39,6 +39,10 @@ import EditAnnouncement from './components/Pages/Teacher/EditAnnouncement';
 import ViewAnnouncement from './components/Pages/Teacher/ViewAnnouncement';
 import TeacherClasses from './components/Pages/Teacher/TeacherClasses';
 
+import ClassAnalysis from './components/Pages/Teacher/ClassAnalysis';
+import AnalysisList from './components/Pages/Teacher/AnalysisList';
+import IndividualAnalysis from './components/Pages/Teacher/IndividualAnalysis';
+import PerformanceManagement from './components/Pages/Teacher/PerformanceManagement';
 
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
@@ -127,7 +131,11 @@ const App = () => {
                     <Route path="/edit-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <EditAnnouncement /> : <Navigate to="/" />} />
                     <Route path="/view-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <ViewAnnouncement /> : <Navigate to="/" />} />
                     <Route path="/teacher-classes" element={user.role === 'Teacher' ? <TeacherClasses /> : <Navigate to="/" />} />
-                    
+
+                    <Route path="/class-analysis" element={user.role === 'Teacher' ? <ClassAnalysis /> : <Navigate to="/" />} />
+                    <Route path="/performance-management" element={user.role === 'Teacher' ? <PerformanceManagement /> : <Navigate to="/" />} />
+                    <Route path="/individual-analysis/:classId/:userId" element={user.role === 'Teacher' ? <IndividualAnalysis /> : <Navigate to="/" />} />
+                    <Route path="/analysis-list" element={user.role === 'Teacher' ? <AnalysisList /> : <Navigate to="/" />} />
                 </Routes>
             </div>
         </Router>

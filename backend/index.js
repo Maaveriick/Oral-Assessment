@@ -1019,35 +1019,6 @@ app.get('/api/student/attempts/:username', async (req, res) => {
 
 
 
-
-
-/*
-// CREATE Announcement
-app.post('/announcements', async (req, res) => {
-  const { title, content, class_id, username } = req.body;
-
-  if (!title || !content || !class_id || !username) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO announcements (title, content, class_id, username) VALUES ($1, $2, $3, $4) RETURNING id, title, content, class_id, username, date_posted',
-      [title, content, class_id, username]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error creating announcement:', err.stack);
-
-    if (err.code === '23502') { // NOT NULL violation
-      res.status(400).json({ message: 'Missing required fields' });
-    } else {
-      res.status(500).json({ message: 'Error creating announcement' });
-    }
-  }
-});
-*/
-
 app.post('/announcements', async (req, res) => {
   const { title, content, class_id, username } = req.body;
 
@@ -1072,21 +1043,6 @@ app.post('/announcements', async (req, res) => {
   }
 });
 
-/*
-app.get('/announcements/class/:classId', async (req, res) => {
-  const { classId } = req.params;
-  try {
-    const announcements = await pool.query(
-      'SELECT * FROM announcements WHERE class_id = $1',
-      [classId]
-    );
-    res.json(announcements.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-*/
 
 app.get('/announcements/class/:classId', async (req, res) => {
   const { classId } = req.params;
@@ -1117,26 +1073,6 @@ app.get('/announcements/class/:classId', async (req, res) => {
   }
 });
 
-/*
-// UPDATE Announcement
-app.put('/announcements/:id', async (req, res) => {
-  const { id } = req.params;
-  const { title, content, class_id } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE announcements SET title = $1, content = $2, class_id = $3 WHERE id = $4 RETURNING *',
-      [title, content, class_id, id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Announcement not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating announcement:', err);
-    res.status(500).json({ message: 'Error updating announcement' });
-  }
-});
-*/
 
 app.put('/announcements/:id', async (req, res) => {
   const { id } = req.params;
@@ -1270,6 +1206,121 @@ app.get('/api/teacher/announcements/:username', async (req, res) => {
   }
 });
 
+app.get('/grades', async (req, res) => {
+  const { classId, teacherUsername } = req.query; // Extract from query parameters
+
+  // If classId or teacherUsername is not provided, return an error
+  if (!classId || !teacherUsername) {
+    return res.status(400).json({ error: 'Missing classId or teacherUsername' });
+  }
+
+  try {
+    // Fetch grades for the specific classId
+    const query = `
+      SELECT username, grade, COALESCE(attempt_count, 0) as attempt_count
+      FROM feedback
+      WHERE class_id = $1
+    `;
+    const result = await pool.query(query, [classId]);  // Use classId from the request
+
+    const grades = result.rows;
+
+    // Calculate Class Average
+    const totalGrades = grades.reduce((acc, student) => acc + Number(student.grade), 0);
+    const classAverage = grades.length > 0 ? totalGrades / grades.length : 0;
+
+    // Calculate Grade Distribution
+    const gradeDistribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    grades.forEach((student) => {
+      const grade = Number(student.grade); // Ensure grade is a number
+      if (grade >= 36) gradeDistribution.A++;
+      else if (grade >= 31) gradeDistribution.B++;
+      else if (grade >= 26) gradeDistribution.C++;
+      else if (grade >= 21) gradeDistribution.D++;
+      else gradeDistribution.F++;
+    });
+
+    res.json({
+      grades,
+      classAverage,
+      gradeDistribution,
+    });
+  } catch (error) {
+    console.error('Error fetching grades:', error);
+    res.status(500).json({ error: 'Error fetching grades.' });
+  }
+});
+
+app.get('/individual-analysis', async (req, res) => {
+  const { classId, userId, username } = req.query;
+
+  if (!userId && !username) {
+    return res.status(400).json({ error: 'Missing userId or username' });
+  }
+
+  try {
+    let query = `SELECT username, grade, attempt_count FROM feedback WHERE class_id = $1`;
+    const queryParams = [classId];
+
+    if (userId) {
+      query += ` AND user_id = $2`;
+      queryParams.push(userId);
+    } else if (username) {
+      query += ` AND username = $2`;
+      queryParams.push(username);
+    }
+
+    const result = await pool.query(query, queryParams);
+    const individualGrades = result.rows;
+
+    // Calculate Total Points, Total Attempts, and Grade Distribution
+    let totalPoints = 0;
+    let gradeDistribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+
+    // Instead of summing attempt counts, count the number of records for totalAttempts
+    const totalAttempts = individualGrades.length; // Count the number of grades, not sum attempts
+
+    individualGrades.forEach((gradeData) => {
+      const grade = Number(gradeData.grade);
+
+      // Add the grade to totalPoints (no multiplication with attempt_count)
+      totalPoints += grade;
+
+      // Calculate grade distribution once for each grade
+      if (grade >= 36) gradeDistribution.A++;
+      else if (grade >= 31) gradeDistribution.B++;
+      else if (grade >= 26) gradeDistribution.C++;
+      else if (grade >= 21) gradeDistribution.D++;
+      else gradeDistribution.F++;
+    });
+
+    // Calculate average grade (numeric)
+    const averageGrade = totalPoints / totalAttempts;
+
+    // Determine the average grade's category
+    const averageGradeDistribution = getGradeDistribution(averageGrade);
+
+    res.json({
+      individualGrades,
+      averageGrade, // Return the average grade as a number
+      gradeDistribution,
+      averageGradeDistribution, // Added average grade distribution
+      totalAttempts, // This will now be the count of grades, not the sum of attempts
+    });
+  } catch (error) {
+    console.error('Error fetching individual grades:', error);
+    res.status(500).json({ error: 'Error fetching individual grades.' });
+  }
+});
+
+// Helper function to determine grade distribution (A, B, C, D, F)
+function getGradeDistribution(grade) {
+  if (grade >= 36) return 'A';
+  if (grade >= 31) return 'B';
+  if (grade >= 26) return 'C';
+  if (grade >= 21) return 'D';
+  return 'F';
+}
 // Listening on port 5000
 app.listen(5000, () => {
   console.log('Server is running on port 5000');
