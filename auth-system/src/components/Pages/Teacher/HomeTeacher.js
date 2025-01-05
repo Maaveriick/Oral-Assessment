@@ -79,6 +79,23 @@ const HomeTeacher = ({ username, onLogout }) => {
                     </Card.Body>
                   </Card>
                 </div>   
+
+                 {/* Card 4 */}
+        <div className="col-12 col-md-4 mb-4 d-flex">
+                  <Card className="shadow-lg border-primary h-100 w-100">
+                    <Card.Body className="text-center p-4">
+                      <i className="bi bi-bar-chart-line mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
+                      <Card.Title className="text-white h5">Rubrics</Card.Title>
+                      <Button
+                        variant="primary"
+                        className="w-100 mt-3"
+                        onClick={() => navigate('/rubricsTeacher')}
+                      >
+                        <i className="bi bi-bar-chart-line me-2"></i> Rubrics
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                </div>   
       </div>
 
       {/* Logout Button */}

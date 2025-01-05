@@ -521,55 +521,223 @@ app.delete('/feedbacks', async (req, res) => {
 
 
 
-// Function to generate AI feedback based on rubric, question, and responses
-const generateFeedback = async (rubric, question, responses) => {
+const generateFeedback = async (rubricId, question, responses) => {
   try {
-    // Combine rubric, generated question, and student responses into a prompt
-    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
-    
-    const prompt = `
-    You are a helpful assistant that evaluates student responses. 
-    The student was asked the following question: 
-    "${question}"
-    
-    Their responses are as follows:
-    ${responsesText}
-    
-    Using the rubric provided below, please evaluate the student's responses and generate a paragraph of feedback. 
-    You should focus on the strengths and weaknesses in the student's responses, provide suggestions for improvement, and use the rubric for context. 
-    Avoid listing the individual criteria from the rubric, and instead, provide a summary of the overall performance in a clear and constructive paragraph.
-    
-    Rubric: ${rubric}
-    `;
+    // Fetch the rubric from the database using the rubricId
+    const result = await pool.query('SELECT components FROM rubrics WHERE id = $1', [rubricId]);
 
-    // Using the correct OpenAI method for completions
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // or another model
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 300, // Adjust the number of tokens as needed
+    if (result.rows.length === 0) {
+      throw new Error('Rubric not found'); // If no rubric is found with the given ID
+    }
+
+    const rubric = result.rows[0].components;
+    console.log('Rubric:', rubric); // Log the entire rubric to inspect its structure
+
+    // Ensure the fetched rubric is an array
+    if (!rubric || !Array.isArray(rubric)) {
+      throw new Error('Rubric components are not in the expected array format.');
+    }
+
+    // Log the rubric components to make sure they are correctly retrieved
+    rubric.forEach((component, index) => {
+      console.log(`Component ${index + 1}:`, component);
     });
 
-    return completion.choices[0].message.content.trim(); // Extract the AI-generated text
+    // Extract necessary details (grade, component, description) from each rubric component
+    const criteria = rubric.map(component => ({
+      grade: component.grade,          // The grade assigned for the component
+      component: component.component,  // The name of the component (e.g., 'Pronunciation')
+      description: component.description, // Description of the component (e.g., 'Clear and accurate pronunciation')
+    }));
+
+    console.log('Criteria:', criteria); // Log the criteria to check its structure
+
+    // Use the 'grade' field to calculate maximum scores
+    const maxScores = criteria.map(c => c.grade);
+
+    // Prepare the responses text to be included in the prompt
+    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
+
+    // Construct a detailed prompt for GPT-4
+    const prompt = `
+  You are a grading assistant. Evaluate the following student responses based on the rubric provided below:
+  
+  Question: "${question}"
+  
+  Responses:
+  ${responsesText}
+  
+  The rubric for evaluation is as follows:
+  ${JSON.stringify(criteria)}
+  
+ Instructions:
+1. Evaluate the student's responses for each component listed in the rubric.
+2. For each component, provide qualitative feedback:
+   - Assess how well the student's response meets the expectations described in the rubric.
+   - Highlight the strengths and weaknesses of the response with respect to the rubric component.
+   - Suggest areas for improvement where applicable, based on the rubric's criteria.
+
+Please do not include any scores. The focus should be on providing detailed, constructive feedback for each component.
+    `;
+
+
+    // Use OpenAI to generate feedback
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use GPT-4 model
+      messages: [
+        { role: 'system', content: 'You are a grading assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500, // Adjust for feedback length
+    });
+
+    // Process and return the AI response
+    const aiResponse = completion.choices[0].message.content.trim();
+    return aiResponse;
+
   } catch (error) {
-    console.error('Error generating feedback:', error);
+    console.error('Error generating feedback:', error); // Log any error that occurs
     return 'Error generating feedback.';
   }
 };
 
+
+
 // Express route to handle feedback generation
 app.post('/generate-feedback', async (req, res) => {
-  const { rubric, question, responses } = req.body; // Get rubric, question, and responses from the request body
+  const { rubricId, question, responses } = req.body; // Expecting rubricId in the request body
+  if (!rubricId) {
+    return res.status(400).json({ error: 'Rubric ID is required' });
+  }
+
   try {
-    const feedback = await generateFeedback(rubric, question, responses); // Generate feedback based on rubric, question, and responses
+    const feedback = await generateFeedback(rubricId, question, responses); // Pass rubricId instead of the full rubric
     res.status(200).json({ feedback });
   } catch (error) {
     console.error('Error generating feedback:', error);
     res.status(500).json({ error: 'Failed to generate feedback' });
   }
 });
+
+
+const generateGrade = async (rubricId, question, responses) => {
+  try {
+    // Fetch the rubric from the database using the rubricId
+    const result = await pool.query('SELECT components FROM rubrics WHERE id = $1', [rubricId]);
+
+    if (result.rows.length === 0) {
+      throw new Error('Rubric not found'); // If no rubric is found with the given ID
+    }
+
+    const rubric = result.rows[0].components;
+
+    // Ensure the fetched rubric is an array
+    if (!rubric || !Array.isArray(rubric)) {
+      throw new Error('Rubric components are not in the expected array format.');
+    }
+
+    // Calculate the maximum possible score (sum of max grade of each rubric component)
+    const maxScore = rubric.reduce((sum, component) => sum + Number(component.grade), 0);
+
+    // Log rubric and max score for debugging
+    console.log('Rubric:', JSON.stringify(rubric, null, 2));
+    console.log('Max Score:', maxScore);
+
+    // Prepare the rubric components for grading
+    const criteria = rubric.map(component => ({
+      grade: Number(component.grade), // Convert grade to number
+      component: component.component, // Component name (e.g., 'Pronunciation')
+      description: component.description, // Description (e.g., 'Clear and accurate pronunciation')
+    }));
+
+    // Log each rubric component's details
+    criteria.forEach(component => {
+      console.log(`Component: ${component.component}`);
+      console.log(`Grade: ${component.grade}`);
+      console.log(`Description: ${component.description}`);
+      console.log('------------------------');
+    });
+
+    // Prepare the responses text to be included in the prompt
+    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
+
+    // Construct a detailed prompt for GPT-4 to generate a grade based on responses and rubric
+    const prompt = `
+      You are a grading assistant. Evaluate the following student responses based on the rubric provided below:
+
+      Question: "${question}"
+
+      Responses:
+      ${responsesText}
+
+      The rubric for evaluation is as follows:
+      ${JSON.stringify(criteria)}
+
+      The total possible score is ${maxScore}.
+
+ **Important Instructions for Grading:**
+      - Please grade each component strictly according to the rubric. The total grade should be based on the sum of the individual rubric components.
+      - A higher score should reflect a better and more detailed response, while a lower score should reflect a less complete or less relevant answer.
+      - Grades should **not exceed the maximum possible score** as defined in the rubric. Do not inflate the grades or give bonus points. If the rubric defines a maximum score for a component, the total score should reflect that.
+      - Be **strict in grading**. Only give the full grade for a component if the student's answer fully meets the expectations set in the rubric. Partial credit should only be given when warranted, and scores should **not be generous**.
+      - The total grade should be **exactly the sum of the individual component grades** based on the rubric. Ensure that the total grade does **not exceed ${maxScore}**.
+      Please provide the total grade in the format: "Total Grade: score/${maxScore}".
+    `;
+
+    // Use OpenAI to generate the grade
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use GPT-4 model
+      messages: [
+        { role: 'system', content: 'You are a grading assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500, // Adjust for grade output length
+    });
+
+    // Process and return the AI response (total grade)
+    const aiResponse = completion.choices[0].message.content.trim();
+
+    // Now, parse the response correctly to extract the total grade and max grade
+    const totalGradeMatch = aiResponse.match(/Total Grade: (\d+)\/(\d+)/);
+
+    if (totalGradeMatch) {
+      const totalScore = totalGradeMatch[1];
+      const maxScore = totalGradeMatch[2];
+
+      // Log the total grade and max score
+      console.log('Total Grade:', totalScore);
+      console.log('Max Score:', maxScore);
+
+      // Return the total score and max score in the desired format
+      return `${totalScore}/${maxScore}`;
+    } else {
+      throw new Error('Invalid response format from GPT-4');
+    }
+
+  } catch (error) {
+    console.error('Error generating grade:', error); // Log any error that occurs
+    return 'Error generating grade.';
+  }
+};
+
+
+
+
+app.post('/generate-grade', async (req, res) => {
+  try {
+    const { rubricId, question, responses } = req.body;
+
+    // Generate grade using AI-based grading function
+    const grade = await generateGrade(rubricId, question, responses);
+
+    res.json({ grade });
+  } catch (error) {
+    console.error('Error generating grade:', error);
+    res.status(500).json({ error: 'Failed to generate grade' });
+  }
+});
+
+
 //Generate Question
 app.post('/generate-questions', async (req, res) => {
   const { topicname, description } = req.body;

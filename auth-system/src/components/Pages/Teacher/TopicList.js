@@ -89,24 +89,34 @@ const TopicList = () => {
         <ul className="nav flex-column">
           {/* Sidebar links */}
           <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/crud-topic")}
-            >
-              <FaChalkboardTeacher className="me-2" /> Topic
-            </button>
-          </li>
+                      <button
+                        className="nav-link text-white"
+                        style={{ background: 'none', border: 'none' }}
+                        onClick={() => navigate('/crud-topic')} // Navigate to CRUD Topic
+                      >
+                        <FaChalkboardTeacher className="me-2" /> Topic
+                      </button>
+                    </li>
           
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/class")}
-            >
-              <FaChalkboardTeacher className="me-2" /> Classes
-            </button>
-          </li>
+                    <li className="nav-item">
+                      <button
+                        className="nav-link text-white"
+                        style={{ background: 'none', border: 'none' }}
+                        onClick={() => navigate('/class')} // Navigate to Classes page
+                      >
+                        <FaChalkboardTeacher className="me-2" /> Classes
+                      </button>
+                    </li>
+          
+                    <li className="nav-item">
+                      <button
+                        className="nav-link text-white"
+                        style={{ background: 'none', border: 'none' }}
+                        onClick={() => navigate('/rubricsTeacher')} // Navigate to Classes page
+                      >
+                        <FaChalkboardTeacher className="me-2" /> Rubrics
+                      </button>
+                    </li>
         </ul>
       </div>
 

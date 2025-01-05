@@ -71,11 +71,25 @@ ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE feedback ADD COLUMN grade VARCHAR(10);
 
+ALTER TABLE feedback
+ADD COLUMN class_id INTEGER;
+
+UPDATE feedback
+SET class_id = classes.id
+FROM classes
+WHERE feedback.teacher_username = classes.teacher_username
+AND EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(classes.students::jsonb) AS student
+    WHERE student->>'username' = feedback.username
+);
+
 rubrics,
 
 CREATE TABLE rubrics (
   id SERIAL PRIMARY KEY,
-  rubric_text TEXT NOT NULL
+  components JSONB,            -- JSON field to store components, descriptions, and grades
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 classes,
@@ -100,15 +114,3 @@ CREATE TABLE announcements (
 ALTER TABLE announcements
 ALTER COLUMN date_posted SET DEFAULT NOW();
 
-ALTER TABLE feedback
-ADD COLUMN class_id INTEGER;
-
-UPDATE feedback
-SET class_id = classes.id
-FROM classes
-WHERE feedback.teacher_username = classes.teacher_username
-AND EXISTS (
-    SELECT 1
-    FROM jsonb_array_elements(classes.students::jsonb) AS student
-    WHERE student->>'username' = feedback.username
-);
