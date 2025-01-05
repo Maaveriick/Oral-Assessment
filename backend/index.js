@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'maverick',
+  database: '',
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
@@ -1021,7 +1021,7 @@ app.get('/api/student/attempts/:username', async (req, res) => {
 
 
 
-
+/*
 // CREATE Announcement
 app.post('/announcements', async (req, res) => {
   const { title, content, class_id, username } = req.body;
@@ -1046,9 +1046,33 @@ app.post('/announcements', async (req, res) => {
     }
   }
 });
+*/
 
+app.post('/announcements', async (req, res) => {
+  const { title, content, class_id, username } = req.body;
 
+  if (!title || !content || !username) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
 
+  try {
+    const result = await pool.query(
+      'INSERT INTO announcements (title, content, class_id, username) VALUES ($1, $2, $3, $4) RETURNING id, title, content, class_id, username, date_posted',
+      [title, content, class_id, username]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error creating announcement:', err.stack);
+
+    if (err.code === '23502') { // NOT NULL violation
+      res.status(400).json({ message: 'Missing required fields' });
+    } else {
+      res.status(500).json({ message: 'Error creating announcement' });
+    }
+  }
+});
+
+/*
 app.get('/announcements/class/:classId', async (req, res) => {
   const { classId } = req.params;
   try {
@@ -1062,8 +1086,38 @@ app.get('/announcements/class/:classId', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+*/
 
+app.get('/announcements/class/:classId', async (req, res) => {
+  const { classId } = req.params;
+  try {
+    // Fetch announcements for the class
+    const announcements = await pool.query(
+      'SELECT * FROM announcements WHERE class_id = $1',
+      [classId]
+    );
 
+    // Fetch the class name
+    const classResult = await pool.query(
+      'SELECT class_name FROM classes WHERE id = $1',
+      [classId]
+    );
+
+    if (classResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    res.json({
+      className: classResult.rows[0].class_name,
+      announcements: announcements.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+/*
 // UPDATE Announcement
 app.put('/announcements/:id', async (req, res) => {
   const { id } = req.params;
@@ -1082,6 +1136,46 @@ app.put('/announcements/:id', async (req, res) => {
     res.status(500).json({ message: 'Error updating announcement' });
   }
 });
+*/
+
+app.put('/announcements/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, content, class_id } = req.body;
+
+  try {
+    let query = '';
+    let values = [];
+
+    // Check if class_id is provided in the request
+    if (class_id !== undefined) {
+      query = `
+        UPDATE announcements 
+        SET title = $1, content = $2, class_id = $3 
+        WHERE id = $4 
+        RETURNING *`;
+      values = [title, content, class_id, id];
+    } else {
+      query = `
+        UPDATE announcements 
+        SET title = $1, content = $2 
+        WHERE id = $3 
+        RETURNING *`;
+      values = [title, content, id];
+    }
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating announcement:', err);
+    res.status(500).json({ message: 'Error updating announcement' });
+  }
+});
+
 
 // DELETE Announcement
 app.delete('/announcements/:id', async (req, res) => {
@@ -1175,9 +1269,6 @@ app.get('/api/teacher/announcements/:username', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-
-
 
 // Listening on port 5000
 app.listen(5000, () => {

@@ -5,7 +5,6 @@ import axios from 'axios';
 const ViewAnnouncement = () => {
   const { announcementId } = useParams();
   const [announcementDetails, setAnnouncementDetails] = useState(null);
-  const [className, setClassName] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -13,12 +12,7 @@ const ViewAnnouncement = () => {
     const fetchAnnouncement = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/announcements/${announcementId}`);
-        const data = response.data;
-        setAnnouncementDetails(data);
-
-        // Fetch class details based on class_id from the announcement
-        const classResponse = await axios.get(`http://localhost:5000/classes/${data.class_id}`);
-        setClassName(classResponse.data.class_name);
+        setAnnouncementDetails(response.data);
       } catch (err) {
         console.error('Error fetching announcement:', err);
         setError(err.response?.data?.message || 'Error fetching announcement.');
@@ -53,10 +47,6 @@ const ViewAnnouncement = () => {
                     <h5 className="text-info">Posted By:</h5>
                     <p>{announcementDetails.username}</p>
                   </div>
-                  <div className="mb-3">
-                    <h5 className="text-info">Class:</h5>
-                    <p>{className}</p>
-                  </div>
                   <button
                     className="btn btn-primary w-100"
                     onClick={() => navigate(`/crud-announcement/${announcementDetails.class_id}`)} // Navigate back to the class's announcement list using the class_id
@@ -76,3 +66,4 @@ const ViewAnnouncement = () => {
 };
 
 export default ViewAnnouncement;
+ 

@@ -39,6 +39,7 @@ import EditAnnouncement from './components/Pages/Teacher/EditAnnouncement';
 import ViewAnnouncement from './components/Pages/Teacher/ViewAnnouncement';
 import TeacherClasses from './components/Pages/Teacher/TeacherClasses';
 
+
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
     const [loading, setLoading] = useState(true);
@@ -126,7 +127,7 @@ const App = () => {
                     <Route path="/edit-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <EditAnnouncement /> : <Navigate to="/" />} />
                     <Route path="/view-announcement/:classId/:announcementId" element={user.role === 'Teacher' ? <ViewAnnouncement /> : <Navigate to="/" />} />
                     <Route path="/teacher-classes" element={user.role === 'Teacher' ? <TeacherClasses /> : <Navigate to="/" />} />
-
+                    
                 </Routes>
             </div>
         </Router>

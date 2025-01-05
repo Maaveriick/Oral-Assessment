@@ -3,12 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const EditAnnouncement = () => {
-  const { classId, announcementId } = useParams(); // Get classId and announcementId from the URL
-  const [announcementDetails, setAnnouncementDetails] = useState(null); // Store announcement details
+  const { announcementId } = useParams(); // Get announcementId from the URL
   const [title, setTitle] = useState(''); // Store title
   const [content, setContent] = useState(''); // Store content
-  const [classIdState, setClassIdState] = useState(classId); // Store class ID for select
-  const [classes, setClasses] = useState([]); // Store available classes
+  const [classId, setClassId] = useState(''); // Store class_id for navigation
   const [error, setError] = useState(''); // Store error messages
   const navigate = useNavigate();
 
@@ -16,17 +14,11 @@ const EditAnnouncement = () => {
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        // Fetch the specific announcement
         const response = await axios.get(`http://localhost:5000/announcements/${announcementId}`);
         const data = response.data;
-        setAnnouncementDetails(data);
         setTitle(data.title);
         setContent(data.content);
-        setClassIdState(data.class_id); // Set class_id from fetched announcement
-
-        // Fetch the available classes for the dropdown
-        const classResponse = await axios.get(`http://localhost:5000/classes`);
-        setClasses(classResponse.data); // Set available classes
+        setClassId(data.class_id); // Capture class_id for navigation
       } catch (err) {
         console.error('Error fetching announcement:', err);
         setError(err.response?.data?.message || 'Error fetching announcement.');
@@ -40,15 +32,11 @@ const EditAnnouncement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const updatedAnnouncement = {
-        title,
-        content,
-        class_id: classIdState, // Use the class_id from the state
-      };
+      const updatedAnnouncement = { title, content };
 
       await axios.put(`http://localhost:5000/announcements/${announcementId}`, updatedAnnouncement);
       alert('Announcement updated successfully!');
-      navigate(`/crud-announcement/${classIdState}`); // Redirect to the class's announcement list
+      navigate(`/crud-announcement/${classId}`); // Redirect to the class-specific announcements list
     } catch (err) {
       console.error('Error updating announcement:', err);
       setError(err.response?.data?.message || 'Error updating announcement.');
@@ -67,56 +55,36 @@ const EditAnnouncement = () => {
                   {error}
                 </div>
               )}
-              {announcementDetails ? (
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-3">
-                    <label htmlFor="title" className="form-label">Title</label>
-                    <input
-                      type="text"
-                      id="title"
-                      className="form-control"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="content" className="form-label">Content</label>
-                    <textarea
-                      id="content"
-                      className="form-control"
-                      rows="4"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                    ></textarea>
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="classId" className="form-label">Class</label>
-                    <select
-                      id="classId"
-                      className="form-control"
-                      value={classIdState}
-                      onChange={(e) => setClassIdState(e.target.value)}
-                    >
-                      <option value="">Select Class</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.class_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button type="submit" className="btn btn-primary w-100">
-                    Update Announcement
-                  </button>
-                </form>
-              ) : (
-                <p className="text-muted">Loading announcement details...</p>
-              )}
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="title" className="form-label">Title</label>
+                  <input
+                    type="text"
+                    id="title"
+                    className="form-control"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="content" className="form-label">Content</label>
+                  <textarea
+                    id="content"
+                    className="form-control"
+                    rows="4"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                  ></textarea>
+                </div>
+                <button type="submit" className="btn btn-primary w-100">
+                  Update Announcement
+                </button>
+              </form>
 
               {/* "Back to Announcements" button */}
               <button
                 className="btn btn-secondary w-100 mt-3"
-                onClick={() => navigate(`/crud-announcement/${classIdState}`)} // Navigate back to class's announcement list
+                onClick={() => navigate(`/crud-announcement/${classId}`)} // Navigate back to the class-specific announcements list
               >
                 Back to Announcements
               </button>

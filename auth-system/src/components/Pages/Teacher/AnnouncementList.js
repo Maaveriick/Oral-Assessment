@@ -10,22 +10,22 @@ import { FaChalkboardTeacher } from 'react-icons/fa';
 
 const AnnouncementList = () => {
   const { classId } = useParams(); // Use classId from route params
+  const [className, setClassName] = useState('');
   const [announcements, setAnnouncements] = useState([]);
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
-  // Fetch announcements specific to the class
   const fetchAnnouncements = async () => {
     try {
       const response = await axios.get(`http://localhost:5000/announcements/class/${classId}`);
       console.log('Announcements fetched from backend:', response.data);
-      setAnnouncements(response.data);
+      setClassName(response.data.className); // Set the class name
+      setAnnouncements(response.data.announcements); // Set announcements
     } catch (error) {
       console.error('Error fetching announcements:', error);
     }
   };
 
-  // Initialize DataTable
   const initializeDataTable = () => {
     if ($.fn.DataTable.isDataTable(tableRef.current)) {
       $(tableRef.current).DataTable().destroy();
@@ -48,7 +48,6 @@ const AnnouncementList = () => {
     }
   }, [announcements]);
 
-  // Function to delete an announcement
   const deleteAnnouncement = async (id) => {
     try {
       const confirmDelete = window.confirm('Are you sure you want to delete this announcement?');
@@ -63,7 +62,6 @@ const AnnouncementList = () => {
     }
   };
 
-  // Format date for display
   const formatDate = (date) => {
     const formattedDate = new Date(date);
     return !isNaN(formattedDate) ? formattedDate.toLocaleString() : 'Invalid Date';
@@ -71,7 +69,6 @@ const AnnouncementList = () => {
 
   return (
     <div className="d-flex">
-      {/* Sidebar */}
       <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
         <h2
           className="text-center mb-4"
@@ -94,7 +91,9 @@ const AnnouncementList = () => {
       </div>
 
       <div className="flex-fill p-4">
-        <h1 className="mb-4">Announcements for Class {classId}</h1>
+        <h1 className="mb-4">
+          Announcements for Class: {className || 'Loading...'} 
+        </h1>
         <div className="mb-3">
           <button
             className="btn btn-success"
