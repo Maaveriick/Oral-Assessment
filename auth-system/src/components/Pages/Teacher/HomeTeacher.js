@@ -93,6 +93,13 @@ const HomeTeacher = ({ username, onLogout }) => {
                       >
                         <i className="bi bi-bar-chart-line me-2"></i> Rubrics
                       </Button>
+                      <Button
+                        variant="primary"
+                        className="w-100 mt-3"
+                        onClick={() => navigate('/crud-rubric')}
+                      >
+                        <i className="bi bi-bar-chart-line me-2"></i> CRUD Rubrics
+                      </Button>
                     </Card.Body>
                   </Card>
                 </div>   

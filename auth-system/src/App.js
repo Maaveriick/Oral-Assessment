@@ -45,6 +45,12 @@ import AnalysisList from './components/Pages/Teacher/AnalysisList';
 import IndividualAnalysis from './components/Pages/Teacher/IndividualAnalysis';
 import PerformanceManagement from './components/Pages/Teacher/PerformanceManagement';
 
+import CreateRubric from './components/Pages/Teacher/CreateRubric';
+import RubricList from './components/Pages/Teacher/RubricList';
+import ViewRubric from './components/Pages/Teacher/ViewRubric';
+import EditRubric from './components/Pages/Teacher/EditRubric';
+
+
 const App = () => {
     const [user, setUser] = useState({ username: '', role: '' });
     const [loading, setLoading] = useState(true);
@@ -139,6 +145,12 @@ const App = () => {
                     <Route path="/performance-management" element={user.role === 'Teacher' ? <PerformanceManagement /> : <Navigate to="/" />} />
                     <Route path="/individual-analysis/:classId/:userId" element={user.role === 'Teacher' ? <IndividualAnalysis /> : <Navigate to="/" />} />
                     <Route path="/analysis-list" element={user.role === 'Teacher' ? <AnalysisList /> : <Navigate to="/" />} />
+
+                    <Route path="/crud-rubric" element={user.role === 'Teacher' ? <RubricList onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/create-rubric" element={user.role === 'Teacher' ? <CreateRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/edit-rubric/:rubricId" element={user.role === 'Teacher' ? <EditRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
+                    <Route path="/view-rubric/:rubricId" element={user.role === 'Teacher' ? <ViewRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
+                
                 </Routes>
             </div>
         </Router>

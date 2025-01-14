@@ -114,3 +114,18 @@ CREATE TABLE announcements (
 ALTER TABLE announcements
 ALTER COLUMN date_posted SET DEFAULT NOW();
 
+CREATE TABLE rubric (
+    id SERIAL PRIMARY KEY,
+    rubric_title VARCHAR(255) NOT NULL,
+    grading_columns JSONB NOT NULL, 
+    column_order TEXT[], 
+    date_created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rubric_rows (
+    id SERIAL PRIMARY KEY,
+    rubric_id INT NOT NULL REFERENCES rubric(id) ON DELETE CASCADE,
+    criteria VARCHAR(255) NOT NULL,
+    weightage VARCHAR(10) NOT NULL,
+    grading_values JSONB NOT NULL 
+);

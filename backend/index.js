@@ -1489,6 +1489,286 @@ function getGradeDistribution(grade) {
   if (grade >= 21) return 'D';
   return 'F';
 }
+
+//Create Rubric
+app.post('/api/rubric', async (req, res) => {
+  const { rubricTitle, rubric, columns } = req.body;
+
+  // Validate input
+  if (!rubricTitle || !Array.isArray(rubric) || !Array.isArray(columns)) {
+    return res.status(400).json({ error: 'Invalid data provided' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN'); // Start a transaction
+
+    // Step 1: Create the column_order array to store column names in the desired order
+    const columnOrder = columns.map(column => column.name);  // Do not stringify it, just keep it as an array.
+
+    // Step 2: Insert the rubric into the rubric table, including column_order
+    const gradingColumns = columns.reduce((acc, column) => {
+      acc[column.name] = '';  // Keep column name as is (no conversion)
+      return acc;
+    }, {});
+
+    const rubricResult = await client.query(
+      'INSERT INTO rubric (rubric_title, grading_columns, column_order) VALUES ($1, $2, $3) RETURNING id',
+      [rubricTitle, JSON.stringify(gradingColumns), columnOrder]  // Pass columnOrder as a proper array (no stringify)
+    );
+
+    const rubricId = rubricResult.rows[0].id;  // Fix: Get rubricId from the result
+
+    // Step 3: Insert rows into the rubric_rows table
+    for (const row of rubric) {
+      const rowGradingValues = {};
+
+      // Populate rowGradingValues based on user input and columns in order
+      columns.forEach((column) => {
+        const columnName = column.name;  // Keep column name as is (no .toLowerCase())
+        rowGradingValues[columnName] = row[columnName] || '';  // Don't convert to lowercase
+      });
+
+      // Normalize weightage
+      let weightage = row.weightage;
+      if (typeof weightage === 'string' && weightage.includes('%')) {
+        weightage = parseFloat(weightage.replace('%', '')) / 100;
+      } else {
+        weightage = parseFloat(weightage);
+      }
+
+      // Ensure criteria is a string
+      let criteria = row.criteria;
+      if (!criteria) {
+        criteria = "Default Criteria";
+      } else if (typeof criteria === 'object') {
+        criteria = JSON.stringify(criteria);  
+      }
+
+      await client.query(
+        'INSERT INTO rubric_rows (rubric_id, grading_values, weightage, criteria) VALUES ($1, $2, $3, $4)',
+        [rubricId, JSON.stringify(rowGradingValues), weightage, criteria]  // Use rubricId here
+      );
+    }
+
+    await client.query('COMMIT');  // Commit transaction
+
+    res.status(200).json({ message: 'Rubric saved successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');  // Rollback on error
+    console.error(error);
+    res.status(500).json({ error: 'Failed to save rubric' });
+  } finally {
+    client.release();
+  }
+});
+
+
+// Route to get all rubrics
+app.get('/api/rubrics', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id AS rubric_id, rubric_title, date_created FROM rubric');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching rubrics:', error);
+    res.status(500).json({ error: 'Failed to fetch rubrics' });
+  }
+});
+
+//Get a rubric by ID
+app.get('/api/rubric/:rubricId', async (req, res) => {
+  const { rubricId } = req.params;
+  const client = await pool.connect();
+
+  try {
+    console.log(`Fetching rubric with ID: ${rubricId}`);
+
+    // Fetch rubric details
+    const rubricResult = await client.query('SELECT * FROM rubric WHERE id = $1', [rubricId]);
+
+    if (rubricResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Rubric not found' });
+    }
+    
+    const rubric = rubricResult.rows[0];
+    
+    // Safely parse grading_columns if it's a valid JSON string, else default to empty object
+    let gradingColumns = {};
+    try {
+      gradingColumns = rubric.grading_columns && typeof rubric.grading_columns === 'string' 
+        ? JSON.parse(rubric.grading_columns)
+        : {};
+    } catch (err) {
+      console.error('Error parsing grading_columns:', err);
+      gradingColumns = {}; // fallback to empty object if parsing fails
+    }
+    
+    // Fetch associated rubric rows
+    const rowsResult = await client.query('SELECT * FROM rubric_rows WHERE rubric_id = $1', [rubricId]);
+    
+    // Ensure grading_values are properly parsed
+    const rows = rowsResult.rows.map(row => {
+      let grading_values = {};
+      try {
+        grading_values = typeof row.grading_values === 'string' ? JSON.parse(row.grading_values) : row.grading_values || {};
+      } catch (err) {
+        console.error('Error parsing grading_values:', err);
+        grading_values = {}; // fallback to empty object if parsing fails
+      }
+    
+      return {
+        ...row,
+        grading_values,
+      };
+    });
+    
+    console.log('Rows fetched:', rows); // Debugging the fetched rows
+    
+    const columnOrder = rubric.column_order || []; // Retrieve column_order to preserve the correct order
+    
+    res.json({
+      rubricTitle: rubric.rubric_title,
+      gradingColumns,
+      rows,
+      columnOrder,  // Include column order in the response
+    });
+    
+  } catch (error) {
+    console.error('Error fetching rubric:', error);
+    res.status(500).json({ error: 'Failed to fetch rubric' });
+  } finally {
+    client.release();
+  }
+});
+
+//Update Rubric by ID
+app.put('/api/rubric/:rubricId', async (req, res) => {
+  const { rubricId } = req.params;
+  const { rubricTitle, rubric, columns } = req.body;
+
+  // Validate input
+  if (!rubricTitle || !Array.isArray(rubric) || !Array.isArray(columns)) {
+    return res.status(400).json({ error: 'Invalid data provided' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN'); // Start a transaction
+
+    // Step 1: Update the column_order array
+    const columnOrder = columns.map(column => column.name);
+
+    // Step 2: Update the rubric table
+    const gradingColumns = columns.reduce((acc, column) => {
+      acc[column.name] = ''; 
+      return acc;
+    }, {});
+
+    await client.query(
+      'UPDATE rubric SET rubric_title = $1, grading_columns = $2, column_order = $3 WHERE id = $4',
+      [rubricTitle, JSON.stringify(gradingColumns), columnOrder, rubricId]
+    );
+
+    // Step 3: Update rows in the rubric_rows table
+    for (const row of rubric) {
+      const rowGradingValues = {};
+
+      columns.forEach(column => {
+        const columnName = column.name;
+        rowGradingValues[columnName] = row[columnName] || '';  
+      });
+
+      let weightage = row.weightage;
+      if (typeof weightage === 'string' && weightage.includes('%')) {
+        weightage = parseFloat(weightage.replace('%', '')) / 100;
+      } else {
+        weightage = parseFloat(weightage);
+        if (isNaN(weightage)) {
+          weightage = 0;  // Fallback if parsing fails
+        }
+      }
+
+      let criteria = row.criteria;
+      if (!criteria) {
+        criteria = "Default Criteria";
+      } else if (typeof criteria === 'object') {
+        criteria = JSON.stringify(criteria);  
+      }
+
+      // Update or insert row if it doesn't already exist
+      if (row.id) {
+        // Update existing row
+        await client.query(
+          'UPDATE rubric_rows SET grading_values = $1, weightage = $2, criteria = $3 WHERE rubric_id = $4 AND id = $5',
+          [JSON.stringify(rowGradingValues), weightage, criteria, rubricId, row.id]
+        );
+      } else {
+        // Insert new row
+        const result = await client.query(
+          'INSERT INTO rubric_rows (rubric_id, grading_values, weightage, criteria) VALUES ($1, $2, $3, $4) RETURNING id',
+          [rubricId, JSON.stringify(rowGradingValues), weightage, criteria]
+        );
+        row.id = result.rows[0].id; // Set the newly created row ID
+      }
+    }
+
+    // Step 4: Remove deleted rows
+    const existingRowIds = rubric.map(row => row.id);
+    // Use string interpolation to safely join the row IDs in the DELETE query
+    await client.query(
+      `DELETE FROM rubric_rows WHERE rubric_id = $1 AND id NOT IN (${existingRowIds.join(',')})`,
+      [rubricId]
+    );
+
+    await client.query('COMMIT');  // Commit transaction
+
+    res.status(200).json({ message: 'Rubric updated successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');  // Rollback on error
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update rubric' });
+  } finally {
+    client.release();
+  }
+});
+
+//Delete Rubric
+app.delete('/api/rubric/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');  // Start a transaction
+
+    // Step 1: Delete rubric rows associated with the rubricId
+    await client.query(
+      'DELETE FROM rubric_rows WHERE rubric_id = $1',
+      [id]
+    );
+
+    // Step 2: Delete the rubric itself
+    await client.query(
+      'DELETE FROM rubric WHERE id = $1',
+      [id]
+    );
+
+    await client.query('COMMIT');  // Commit transaction
+
+    res.status(200).json({ message: 'Rubric deleted successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');  // Rollback on error
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete rubric' });
+  } finally {
+    client.release();
+  }
+});
+
+
+
 // Listening on port 5000
 app.listen(5000, () => {
   console.log('Server is running on port 5000');
