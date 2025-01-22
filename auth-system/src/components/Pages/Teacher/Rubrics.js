@@ -1,25 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Axios to fetch rubrics data
-import { useNavigate } from 'react-router-dom'; // Assuming you're using react-router-dom for navigation
-import { FaChalkboardTeacher } from 'react-icons/fa'; // FontAwesome icon
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { FaChalkboardTeacher } from "react-icons/fa";
 
 const Rubrics = () => {
-  const [rubrics, setRubrics] = useState([]); // State to store fetched rubrics
-  const navigate = useNavigate(); // Initialize navigate function
+  const [selectedRubric, setSelectedRubric] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Fetch rubrics from backend on component mount
+  // Fetch the first available rubric automatically
   useEffect(() => {
     const fetchRubrics = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/rubrics'); // Update with your endpoint
-        setRubrics(response.data); // Store fetched rubrics in state
+        const response = await axios.get("http://localhost:5000/api/rubrics");
+        if (response.data.length > 0) {
+          fetchRubricDetails(response.data[0].rubric_id); // Load first rubric
+        } else {
+          setLoading(false);
+        }
       } catch (error) {
-        console.error('Error fetching rubrics:', error);
+        console.error("Error fetching rubrics:", error);
+        setLoading(false);
       }
     };
 
     fetchRubrics();
-  }, []); // Empty dependency array, runs once on component mount
+  }, []);
+
+  // Fetch details of the first rubric
+  const fetchRubricDetails = async (rubricId) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/rubric/${rubricId}`);
+      console.log("Rubric details:", response.data); // Debugging
+      setSelectedRubric(response.data);
+    } catch (error) {
+      console.error("Error fetching rubric details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="d-flex">
@@ -27,27 +46,26 @@ const Rubrics = () => {
       <div
         className="sidebar bg-dark text-white p-4"
         style={{
-          width: '250px',
-          height: '100vh',
-          position: 'fixed',
+          width: "250px",
+          height: "100vh",
+          position: "fixed",
           top: 0,
           left: 0,
         }}
       >
         <h2
           className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate('/hometeacher')} // Navigate to Teacher Home
+          onClick={() => navigate("/hometeacher")}
         >
           Teacher Navigation
         </h2>
 
         <ul className="nav flex-column">
-          {/* Sidebar links */}
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/crud-topic')} // Navigate to CRUD Topic
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/crud-topic")}
             >
               <FaChalkboardTeacher className="me-2" /> Topic
             </button>
@@ -56,8 +74,8 @@ const Rubrics = () => {
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/class')} // Navigate to Classes page
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/class")}
             >
               <FaChalkboardTeacher className="me-2" /> Classes
             </button>
@@ -66,8 +84,8 @@ const Rubrics = () => {
           <li className="nav-item">
             <button
               className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/rubricsTeacher')} // Navigate to Classes page
+              style={{ background: "none", border: "none" }}
+              onClick={() => navigate("/rubricsTeacher")}
             >
               <FaChalkboardTeacher className="me-2" /> Rubrics
             </button>
@@ -75,48 +93,55 @@ const Rubrics = () => {
         </ul>
       </div>
 
-      {/* Main content (Rubrics) */}
+      {/* Main content */}
       <div
         className="container mt-5"
         style={{
-          marginLeft: '250px', // Ensure space for the sidebar, 250px for sidebar width
-          paddingTop: '20px', // Add some padding at the top for better spacing
-          flex: 1, // Ensure the main content takes the remaining space
+          marginLeft: "250px",
+          paddingTop: "20px",
+          flex: 1,
         }}
       >
-        <h1 className="text-center mb-4">Grading Rubrics</h1>
+        <h1 className="text-center mb-4">Grading Rubric</h1>
 
-        {/* Card container to wrap the table for better design */}
-        <div className="card shadow-sm">
-          <div className="card-body">
-            {/* Table to display rubrics */}
-            <table className="table table-striped table-bordered table-hover">
-              <thead className="table-dark">
-                <tr>
-                  <th>Component</th>
-                  <th>Description</th>
-                  <th>Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Map over the rubrics array to display each rubric and its components */}
-                {rubrics.map((rubric) => (
-                  <React.Fragment key={rubric.id}>
-                    {/* Render rows for each rubric's components */}
-                    {rubric.components.map((component, index) => (
-                      <tr key={component.component}>
-                        {/* Display the actual component, description, and grade */}
-                        <td>{component.component}</td>
-                        <td>{component.description}</td>
-                        <td>{component.grade}</td>
-                      </tr>
+        {loading ? (
+          <p className="text-center">Loading rubric details...</p>
+        ) : selectedRubric ? (
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <h2 className="text-center">{selectedRubric.rubricTitle}</h2>
+
+              {/* Rubric Table */}
+              <table className="table table-bordered mt-3">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Criteria</th>
+                    <th>Weightage (%)</th>
+                    {selectedRubric.columnOrder && selectedRubric.columnOrder.map((col, index) => (
+                      <th key={index}>{col}</th> // Directly using the database column order
                     ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                  </tr>
+                </thead>
+                <tbody>
+  {selectedRubric.rows.map((row) => (
+    <tr key={row.id}>
+      <td>{row.criteria}</td>
+      <td>{row.weightage ? row.weightage * 100 : "N/A"}%</td>
+      {selectedRubric.columnOrder.map((col, index) => (
+        <td key={`${row.id}-${col}`}>
+          {row.grading_values && row.grading_values[col] ? row.grading_values[col] : "N/A"}
+        </td>
+      ))}
+    </tr>
+  ))}
+</tbody>
+
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-center">No rubrics available.</p>
+        )}
       </div>
     </div>
   );

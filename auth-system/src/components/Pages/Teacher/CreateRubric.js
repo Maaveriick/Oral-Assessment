@@ -68,51 +68,53 @@ const CreateRubric = () => {
     }));
   };
 
-  const saveRubric = async () => {
-    // Calculate total weightage
-    const totalWeightage = rubric.reduce((sum, row) => {
-      const weight = parseFloat(row.weightage.replace('%', ''));
-      return sum + (isNaN(weight) ? 0 : weight);
-    }, 0);
-  
-    if (totalWeightage !== 100) {
-      alert('The total weightage must add up to 100%. Currently, it is ' + totalWeightage + '%.');
-      return;
-    }
-  
-    const isValid = rubric.every(row => row.criteria && row.weightage && columns.every(col => row[col.name] && row[col.name].trim() !== ''));
-    if (!isValid) {
-      alert('All fields must be filled and weightage must be a percentage (e.g., 20%)');
-      return;
-    }
-  
-    try {
-      const formattedRubric = rubric.map(row => {
-        const gradingColumns = columns.reduce((acc, column) => {
-          acc[column.name] = row[column.name] || '';
-          return acc;
-        }, {});
-  
-        return {
-          ...row,
-          weightage: row.weightage.includes('%') ? row.weightage : `${row.weightage}%`,
-          grading_columns: gradingColumns,
-        };
-      });
-  
-      const response = await axios.post('http://localhost:5000/api/rubric', {
-        rubricTitle,
-        rubric: formattedRubric,
-        columns,
-      });
-  
-      console.log('Rubric saved successfully:', response.data);
-      navigate('/crud-rubric');
-    } catch (error) {
-      console.error('Error saving rubric:', error);
-      alert('Failed to save rubric: ' + (error.response ? error.response.data.error : 'Unknown error'));
-    }
-  };
+const saveRubric = async () => {
+  // Calculate total weightage
+  const totalWeightage = rubric.reduce((sum, row) => {
+    // Remove '%' and convert to decimal (e.g., 30% becomes 0.30)
+    const weight = parseFloat(row.weightage.replace('%', '')) / 100;
+    return sum + (isNaN(weight) ? 0 : weight);
+  }, 0);
+
+  if (totalWeightage !== 1) {  // 100% in decimal is 1
+    alert('The total weightage must add up to 100%. Currently, it is ' + (totalWeightage * 100) + '%.');
+    return;
+  }
+
+  const isValid = rubric.every(row => row.criteria && row.weightage && columns.every(col => row[col.name] && row[col.name].trim() !== ''));
+  if (!isValid) {
+    alert('All fields must be filled and weightage must be a percentage (e.g., 20%)');
+    return;
+  }
+
+  try {
+    const formattedRubric = rubric.map(row => {
+      const gradingColumns = columns.reduce((acc, column) => {
+        acc[column.name] = row[column.name] || '';
+        return acc;
+      }, {});
+
+      // Convert weightage to decimal (e.g., 30% -> 0.30)
+      return {
+        ...row,
+        weightage: parseFloat(row.weightage.replace('%', '')) / 100,  // Convert to decimal
+        grading_columns: gradingColumns,
+      };
+    });
+
+    const response = await axios.post('http://localhost:5000/api/rubric', {
+      rubricTitle,
+      rubric: formattedRubric,
+      columns,
+    });
+
+    console.log('Rubric saved successfully:', response.data);
+    navigate('/crud-rubric');
+  } catch (error) {
+    console.error('Error saving rubric:', error);
+    alert('Failed to save rubric: ' + (error.response ? error.response.data.error : 'Unknown error'));
+  }
+};
   
 
   return (

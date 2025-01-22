@@ -14,6 +14,7 @@ const CreateTopic = () => {
   const [classes, setClasses] = useState([]); // State for storing classes
   const [selectedClasses, setSelectedClasses] = useState([]); // State for storing selected class names
   const [videoPreview, setVideoPreview] = useState(""); // State for video preview URL
+  const [timer, setTimer] = useState(30);  // Default to 30 minutes
   const navigate = useNavigate();
 
   // Fetching the logged-in teacher's username
@@ -45,40 +46,40 @@ const CreateTopic = () => {
   // Handle creating a new topic
   const handleCreate = async (e) => {
     e.preventDefault();
-
+  
     const formData = new FormData();
     formData.append("topicname", topicName);
     formData.append("difficulty", difficulty);
     formData.append("description", description);
-    formData.append("teacher_username", username); // Include the teacher's username
-
-    // Add selected class names to the form data
+    formData.append("teacher_username", username);
+    formData.append("timer", timer);  // Add the timer value
+  
     selectedClasses.forEach((className) => {
-      formData.append("classes[]", className); // Save class names instead of IDs
+      formData.append("classes[]", className);
     });
-
+  
     if (videoFile) {
       formData.append("video", videoFile);
     }
-
-    // Add questions to the form data
+  
     questions.forEach((question, index) => {
       if (question.text) {
         formData.append(`questions[${index}]`, question.text);
       }
     });
-
+  
     try {
       await axios.post("http://localhost:5000/topics", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      navigate("/crud-topic"); // Redirect to topics list
+      navigate("/crud-topic");
     } catch (error) {
       console.error("Error creating topic:", error);
     }
   };
+  
 
   // Handle input change for individual questions
   const handleQuestionChange = (index, value) => {
@@ -212,6 +213,19 @@ const CreateTopic = () => {
             </video>
           </div>
         )}
+
+<div className="mb-3">
+  <label className="form-label">Timer (Minutes):</label>
+  <input
+    type="number"
+    className="form-control"
+    value={timer}
+    onChange={(e) => setTimer(e.target.value)}
+    min="1"
+    required
+  />
+</div>
+        
         <div className="mb-3">
           <label className="form-label">Available Classes</label>
           <div className="card">

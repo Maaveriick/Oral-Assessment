@@ -96,6 +96,12 @@ const ViewTopic = () => {
           </div>
         )}
 
+        {/* Timer */}
+        <div className="mb-3">
+          <label className="form-label">Duration:</label>
+          <p className="form-control-plaintext">{topic.timer}</p> {/* Display the timer */}
+        </div>
+
         {/* Questions Section */}
         <div className="mb-3">
           <label className="form-label">Questions:</label>

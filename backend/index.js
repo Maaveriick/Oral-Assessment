@@ -295,35 +295,34 @@ app.delete('/students/:id', async (req, res) => {
 
 // CRUD for Topics
 app.post('/topics', upload.single('video'), async (req, res) => {
-  const { topicname, difficulty, description, teacher_username, questions, classes } = req.body;
+  const { topicname, difficulty, description, teacher_username, questions, classes, timer } = req.body;
   const videoUrl = req.file ? req.file.path : null;
   const currentDate = new Date().toISOString();
-
+ 
   try {
-    // Ensure that the 'classes' field is passed as an array.
     const classesArray = classes ? (Array.isArray(classes) ? classes : [classes]) : [];
-
-    // Convert questions into an array if it's not already
     const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
-
+ 
+    // Insert the topic along with the timer value
     const topicResult = await pool.query(
-      'INSERT INTO topic (topicname, difficulty, description, teacher_username, video_url, datecreated, questions, classes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
-      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray]
+      'INSERT INTO topic (topicname, difficulty, description, teacher_username, video_url, datecreated, questions, classes, timer) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray, timer]
     );
-
-    res.status(201).json({ message: 'Topic created successfully with questions and classes' });
+ 
+    res.status(201).json({ message: 'Topic created successfully with timer, questions, and classes' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
-
-
-
-
+ 
+ 
+ 
+ 
+ 
 app.get('/topics', async (req, res) => {
   const loggedInUser = req.headers['username']; // Assuming the username is sent in the request header
-
+ 
   try {
     const topics = await pool.query('SELECT * FROM topic WHERE teacher_username = $1', [loggedInUser]);
     res.json(topics.rows);
@@ -332,47 +331,45 @@ app.get('/topics', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
-
+ 
+ 
 app.get('/topics/:id', async (req, res) => {
   const { id } = req.params;
-
+ 
   try {
     const topic = await pool.query('SELECT * FROM topic WHERE id = $1', [id]);
-
+ 
     if (topic.rows.length === 0) {
       return res.status(404).json({ message: 'Topic not found' });
     }
-
-
+ 
+ 
     res.json(topic.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
-
-
-
+ 
+ 
+ 
 app.put('/topics/:id', upload.single('video'), async (req, res) => {
-  const { topicname, difficulty, description, teacher_username, questions, selectedClasses } = req.body;
+  const { topicname, difficulty, description, teacher_username, questions, selectedClasses, timer } = req.body;
   const videoUrl = req.file ? req.file.path : req.body.videoUrl || null;
   const currentDate = new Date().toISOString();
   const topicId = req.params.id;
-
+ 
   try {
-    // Ensure selectedClasses is an array (no need for JSON.parse if it's already an array)
     const classesArray = Array.isArray(selectedClasses) ? selectedClasses : [];
-
-    // Convert questions into an array if it's not already
     const questionsArray = questions ? (Array.isArray(questions) ? questions : [questions]) : null;
-
+ 
+    // Update the topic along with the timer value
     const topicResult = await pool.query(
-      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, teacher_username = $4, video_url = $5, datecreated = $6, questions = $7, classes = $8 WHERE id = $9',
-      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray, topicId]
+      'UPDATE topic SET topicname = $1, difficulty = $2, description = $3, teacher_username = $4, video_url = $5, datecreated = $6, questions = $7, classes = $8, timer = $9 WHERE id = $10',
+      [topicname, difficulty, description, teacher_username, videoUrl, currentDate, questionsArray, classesArray, timer, topicId]
     );
-
-    res.status(200).json({ message: 'Topic updated successfully with questions and classes' });
+ 
+    res.status(200).json({ message: 'Topic updated successfully with timer, questions, and classes' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -427,17 +424,18 @@ app.delete('/topics/:id', async (req, res) => {
 });
 
 // CRUD for Feedback
-
 app.post('/feedbacks', async (req, res) => {
-  const { username, teacher_username, topicId, attempt_count, feedback, grade, user_id } = req.body;
-
+  const { username, teacher_username, topicId, attempt_count, feedback, grade, user_id,} = req.body;
+ 
+  console.log('Request Body:', req.body); // Log the entire request body
+ 
   if (!username || !teacher_username || !topicId || !attempt_count || !feedback || !grade) {
     return res.status(400).send('All fields are required');
   }
-
+ 
   try {
     await pool.query(
-      `INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, grade, user_id) 
+      `INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, grade, user_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [username, teacher_username, topicId, attempt_count, feedback, grade, user_id]
     );
@@ -478,18 +476,18 @@ app.post('/feedbacks/details', async (req, res) => {
 
 
 app.put('/feedbacks/update', async (req, res) => {
-  const { username, topicId, attempt_count, feedback_text, grade } = req.body;
+  const { username, teacher_username, topicId, attempt_count, feedback_text, grade } = req.body;
 
-  if (!username || !topicId || !attempt_count || !feedback_text || !grade) {
+  if (!username || !teacher_username || !topicId || !attempt_count || !feedback_text || !grade) {
     return res.status(400).send('All fields are required');
   }
 
   try {
     await pool.query(
       `UPDATE feedback 
-       SET feedback_text = $1, grade = $2 
-       WHERE username = $3 AND topic_id = $4 AND attempt_count = $5`,
-      [feedback_text, grade, username, topicId, attempt_count]
+       SET feedback_text = $1, grade = $2, teacher_username = $3
+       WHERE username = $4 AND topic_id = $5 AND attempt_count = $6`,
+      [feedback_text, grade, teacher_username, username, topicId, attempt_count]
     );
     res.status(200).send('Feedback updated successfully');
   } catch (err) {
@@ -518,225 +516,6 @@ app.delete('/feedbacks', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
-
-
-const generateFeedback = async (rubricId, question, responses) => {
-  try {
-    // Fetch the rubric from the database using the rubricId
-    const result = await pool.query('SELECT components FROM rubrics WHERE id = $1', [rubricId]);
-
-    if (result.rows.length === 0) {
-      throw new Error('Rubric not found'); // If no rubric is found with the given ID
-    }
-
-    const rubric = result.rows[0].components;
-    console.log('Rubric:', rubric); // Log the entire rubric to inspect its structure
-
-    // Ensure the fetched rubric is an array
-    if (!rubric || !Array.isArray(rubric)) {
-      throw new Error('Rubric components are not in the expected array format.');
-    }
-
-    // Log the rubric components to make sure they are correctly retrieved
-    rubric.forEach((component, index) => {
-      console.log(`Component ${index + 1}:`, component);
-    });
-
-    // Extract necessary details (grade, component, description) from each rubric component
-    const criteria = rubric.map(component => ({
-      grade: component.grade,          // The grade assigned for the component
-      component: component.component,  // The name of the component (e.g., 'Pronunciation')
-      description: component.description, // Description of the component (e.g., 'Clear and accurate pronunciation')
-    }));
-
-    console.log('Criteria:', criteria); // Log the criteria to check its structure
-
-    // Use the 'grade' field to calculate maximum scores
-    const maxScores = criteria.map(c => c.grade);
-
-    // Prepare the responses text to be included in the prompt
-    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
-
-    // Construct a detailed prompt for GPT-4
-    const prompt = `
-  You are a grading assistant. Evaluate the following student responses based on the rubric provided below:
-  
-  Question: "${question}"
-  
-  Responses:
-  ${responsesText}
-  
-  The rubric for evaluation is as follows:
-  ${JSON.stringify(criteria)}
-  
- Instructions:
-1. Evaluate the student's responses for each component listed in the rubric.
-2. For each component, provide qualitative feedback:
-   - Assess how well the student's response meets the expectations described in the rubric.
-   - Highlight the strengths and weaknesses of the response with respect to the rubric component.
-   - Suggest areas for improvement where applicable, based on the rubric's criteria.
-
-Please do not include any scores. The focus should be on providing detailed, constructive feedback for each component.
-    `;
-
-
-    // Use OpenAI to generate feedback
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Use GPT-4 model
-      messages: [
-        { role: 'system', content: 'You are a grading assistant.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 500, // Adjust for feedback length
-    });
-
-    // Process and return the AI response
-    const aiResponse = completion.choices[0].message.content.trim();
-    return aiResponse;
-
-  } catch (error) {
-    console.error('Error generating feedback:', error); // Log any error that occurs
-    return 'Error generating feedback.';
-  }
-};
-
-
-
-// Express route to handle feedback generation
-app.post('/generate-feedback', async (req, res) => {
-  const { rubricId, question, responses } = req.body; // Expecting rubricId in the request body
-  if (!rubricId) {
-    return res.status(400).json({ error: 'Rubric ID is required' });
-  }
-
-  try {
-    const feedback = await generateFeedback(rubricId, question, responses); // Pass rubricId instead of the full rubric
-    res.status(200).json({ feedback });
-  } catch (error) {
-    console.error('Error generating feedback:', error);
-    res.status(500).json({ error: 'Failed to generate feedback' });
-  }
-});
-
-
-const generateGrade = async (rubricId, question, responses) => {
-  try {
-    // Fetch the rubric from the database using the rubricId
-    const result = await pool.query('SELECT components FROM rubrics WHERE id = $1', [rubricId]);
-
-    if (result.rows.length === 0) {
-      throw new Error('Rubric not found'); // If no rubric is found with the given ID
-    }
-
-    const rubric = result.rows[0].components;
-
-    // Ensure the fetched rubric is an array
-    if (!rubric || !Array.isArray(rubric)) {
-      throw new Error('Rubric components are not in the expected array format.');
-    }
-
-    // Calculate the maximum possible score (sum of max grade of each rubric component)
-    const maxScore = rubric.reduce((sum, component) => sum + Number(component.grade), 0);
-
-    // Log rubric and max score for debugging
-    console.log('Rubric:', JSON.stringify(rubric, null, 2));
-    console.log('Max Score:', maxScore);
-
-    // Prepare the rubric components for grading
-    const criteria = rubric.map(component => ({
-      grade: Number(component.grade), // Convert grade to number
-      component: component.component, // Component name (e.g., 'Pronunciation')
-      description: component.description, // Description (e.g., 'Clear and accurate pronunciation')
-    }));
-
-    // Log each rubric component's details
-    criteria.forEach(component => {
-      console.log(`Component: ${component.component}`);
-      console.log(`Grade: ${component.grade}`);
-      console.log(`Description: ${component.description}`);
-      console.log('------------------------');
-    });
-
-    // Prepare the responses text to be included in the prompt
-    const responsesText = responses.map(response => `${response.sender}: ${response.text}`).join('\n');
-
-    // Construct a detailed prompt for GPT-4 to generate a grade based on responses and rubric
-    const prompt = `
-      You are a grading assistant. Evaluate the following student responses based on the rubric provided below:
-
-      Question: "${question}"
-
-      Responses:
-      ${responsesText}
-
-      The rubric for evaluation is as follows:
-      ${JSON.stringify(criteria)}
-
-      The total possible score is ${maxScore}.
-
- **Important Instructions for Grading:**
-      - Please grade each component strictly according to the rubric. The total grade should be based on the sum of the individual rubric components.
-      - A higher score should reflect a better and more detailed response, while a lower score should reflect a less complete or less relevant answer.
-      - Grades should **not exceed the maximum possible score** as defined in the rubric. Do not inflate the grades or give bonus points. If the rubric defines a maximum score for a component, the total score should reflect that.
-      - Be **strict in grading**. Only give the full grade for a component if the student's answer fully meets the expectations set in the rubric. Partial credit should only be given when warranted, and scores should **not be generous**.
-      - The total grade should be **exactly the sum of the individual component grades** based on the rubric. Ensure that the total grade does **not exceed ${maxScore}**.
-      Please provide the total grade in the format: "Total Grade: score/${maxScore}".
-    `;
-
-    // Use OpenAI to generate the grade
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Use GPT-4 model
-      messages: [
-        { role: 'system', content: 'You are a grading assistant.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 500, // Adjust for grade output length
-    });
-
-    // Process and return the AI response (total grade)
-    const aiResponse = completion.choices[0].message.content.trim();
-
-    // Now, parse the response correctly to extract the total grade and max grade
-    const totalGradeMatch = aiResponse.match(/Total Grade: (\d+)\/(\d+)/);
-
-    if (totalGradeMatch) {
-      const totalScore = totalGradeMatch[1];
-      const maxScore = totalGradeMatch[2];
-
-      // Log the total grade and max score
-      console.log('Total Grade:', totalScore);
-      console.log('Max Score:', maxScore);
-
-      // Return the total score and max score in the desired format
-      return `${totalScore}/${maxScore}`;
-    } else {
-      throw new Error('Invalid response format from GPT-4');
-    }
-
-  } catch (error) {
-    console.error('Error generating grade:', error); // Log any error that occurs
-    return 'Error generating grade.';
-  }
-};
-
-
-
-
-app.post('/generate-grade', async (req, res) => {
-  try {
-    const { rubricId, question, responses } = req.body;
-
-    // Generate grade using AI-based grading function
-    const grade = await generateGrade(rubricId, question, responses);
-
-    res.json({ grade });
-  } catch (error) {
-    console.error('Error generating grade:', error);
-    res.status(500).json({ error: 'Failed to generate grade' });
-  }
-});
-
 
 //Generate Question
 app.post('/generate-questions', async (req, res) => {
@@ -867,7 +646,6 @@ app.post('/end_session', async (req, res) => {
 
 
 
-
 app.post('/attempts', async (req, res) => {
   const { username, topicId } = req.body;
 
@@ -898,10 +676,6 @@ app.post('/attempts', async (req, res) => {
   }
 });
 
-
-
-
-
 app.post('/get_attempt_details', async (req, res) => {
   const { username, topicId, attempt_count } = req.body;
 
@@ -929,90 +703,6 @@ app.post('/get_attempt_details', async (req, res) => {
   }
 });
 
-// Save or Update Rubric (POST for create, PUT for update)
-app.post('/save-rubric', async (req, res) => {
-  const { rubric, rubricId } = req.body;
-
-  try {
-    if (rubricId) {
-      // Update existing rubric
-      const result = await pool.query(
-        'UPDATE rubrics SET rubric_text = $1 WHERE id = $2 RETURNING *',
-        [rubric, rubricId]
-      );
-
-      if (result.rowCount > 0) {
-        res.status(200).json({ message: 'Rubric updated successfully', rubric: result.rows[0] });
-      } else {
-        res.status(404).json({ message: 'Rubric not found' });
-      }
-    } else {
-      // Insert new rubric
-      const result = await pool.query(
-        'INSERT INTO rubrics (rubric_text) VALUES ($1) RETURNING *',
-        [rubric]
-      );
-      res.status(200).json({ message: 'Rubric saved successfully', rubric: result.rows[0] });
-    }
-  } catch (error) {
-    console.error('Error saving rubric:', error);
-    res.status(500).json({ error: 'Failed to save rubric' });
-  }
-});
-
-// Fetch Rubrics
-app.get('/rubrics', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM rubrics');
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error fetching rubrics:', error);
-    res.status(500).json({ error: 'Failed to fetch rubrics' });
-  }
-});
-
-// Add the PUT route for updating rubrics
-app.put('/save-rubric', async (req, res) => {
-  const { rubric, rubricId } = req.body;
-
-  try {
-    if (!rubricId) {
-      return res.status(400).json({ error: 'Rubric ID is required to update' });
-    }
-
-    const result = await pool.query(
-      'UPDATE rubrics SET rubric_text = $1 WHERE id = $2 RETURNING *',
-      [rubric, rubricId]
-    );
-
-    if (result.rowCount > 0) {
-      res.status(200).json({ message: 'Rubric updated successfully', rubric: result.rows[0] });
-    } else {
-      res.status(404).json({ message: 'Rubric not found' });
-    }
-  } catch (error) {
-    console.error('Error updating rubric:', error);
-    res.status(500).json({ error: 'Failed to update rubric' });
-  }
-});
-
-// DELETE Route
-app.delete('/delete-rubric/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const result = await pool.query('DELETE FROM rubrics WHERE id = $1 RETURNING *', [id]);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Rubric not found' });
-    }
-
-    res.status(200).json({ message: 'Rubric deleted successfully', rubric: result.rows[0] });
-  } catch (error) {
-    console.error('Error deleting rubric:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  }
-});
 
 //CRUD Classess
 
@@ -1153,7 +843,7 @@ app.get('/classes/teacher/:username', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT id, class_name, teacher_username, students FROM classes WHERE teacher_username = $1',
+      'SELECT id, class_name, teacher_username, students, ai_enabled FROM classes WHERE teacher_username = $1',
       [username]
     );
 
@@ -1167,6 +857,64 @@ app.get('/classes/teacher/:username', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch classes' });
   }
 });
+
+app.put('/classes/teacher/:username/:classId/ai-toggle', async (req, res) => {
+  const { username, classId } = req.params;
+  console.log('Request Params:', req.params); // Log parameters for debugging
+  const { aiEnabled } = req.body;
+
+  try {
+    const classCheck = await pool.query(
+      'SELECT teacher_username FROM classes WHERE id = $1',
+      [classId]
+    );
+
+    if (classCheck.rows.length > 0 && classCheck.rows[0].teacher_username === username) {
+      const updateQuery = `
+        UPDATE classes
+        SET ai_enabled = $1
+        WHERE id = $2
+      `;
+      await pool.query(updateQuery, [aiEnabled, classId]);
+
+      res.status(200).json({ message: 'AI feature status updated successfully.' });
+    } else {
+      res.status(403).json({ message: 'You are not authorized to modify this class.' });
+    }
+  } catch (error) {
+    console.error('Error updating AI feature:', error);
+    res.status(500).json({ error: 'Failed to update AI feature status.' });
+  }
+});
+
+// Endpoint to get AI status for the student's class
+app.get('/assessment/student/:username', async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT c.ai_enabled ' +
+      'FROM classes c ' +
+      'WHERE EXISTS (' +
+        'SELECT 1 ' +
+        'FROM jsonb_array_elements(c.students) AS student ' +
+        "WHERE student->>'username' = $1" +  // Corrected syntax, properly escaping single quotes
+      ')',
+      [username]
+    );
+
+    if (result.rows.length > 0) {
+      const aiEnabled = result.rows[0].ai_enabled;
+      res.status(200).json({ aiEnabled });  // Send the AI status
+    } else {
+      res.status(404).json({ message: 'Student not found in class.' });
+    }
+  } catch (error) {
+    console.error('Error fetching AI status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 app.get('/api/student/attempts/:username', async (req, res) => {
   const { username } = req.params;
@@ -1576,7 +1324,7 @@ app.get('/api/rubrics', async (req, res) => {
   }
 });
 
-//Get a rubric by ID
+
 app.get('/api/rubric/:rubricId', async (req, res) => {
   const { rubricId } = req.params;
   const client = await pool.connect();
@@ -1590,50 +1338,60 @@ app.get('/api/rubric/:rubricId', async (req, res) => {
     if (rubricResult.rowCount === 0) {
       return res.status(404).json({ error: 'Rubric not found' });
     }
-    
+
     const rubric = rubricResult.rows[0];
-    
+
     // Safely parse grading_columns if it's a valid JSON string, else default to empty object
     let gradingColumns = {};
     try {
-      gradingColumns = rubric.grading_columns && typeof rubric.grading_columns === 'string' 
+      gradingColumns = rubric.grading_columns && typeof rubric.grading_columns === 'string'
         ? JSON.parse(rubric.grading_columns)
         : {};
     } catch (err) {
       console.error('Error parsing grading_columns:', err);
       gradingColumns = {}; // fallback to empty object if parsing fails
     }
-    
-    // Fetch associated rubric rows
+
+    // Fetch associated rubric rows and their weights
     const rowsResult = await client.query('SELECT * FROM rubric_rows WHERE rubric_id = $1', [rubricId]);
-    
-    // Ensure grading_values are properly parsed
+
     const rows = rowsResult.rows.map(row => {
       let grading_values = {};
       try {
-        grading_values = typeof row.grading_values === 'string' ? JSON.parse(row.grading_values) : row.grading_values || {};
+        // Safely parse grading_values if it's a valid JSON string
+        grading_values = typeof row.grading_values === 'string' 
+          ? JSON.parse(row.grading_values) 
+          : row.grading_values || {}; // fallback to empty object if parsing fails
       } catch (err) {
         console.error('Error parsing grading_values:', err);
-        grading_values = {}; // fallback to empty object if parsing fails
+        grading_values = {}; // fallback to empty object
       }
-    
+
+      // Ensure each row has a valid weightage
+      const weightage = parseFloat(row.weightage); // Ensure weightage is treated as a decimal
+      if (isNaN(weightage)) {
+        console.error(`Invalid weightage value for row with ID ${row.id}: ${row.weightage}`);
+        return null;  // Skip rows with invalid weightage
+      }
+
       return {
         ...row,
         grading_values,
+        weightage, // Include weightage as a decimal value
       };
-    });
-    
+    }).filter(row => row !== null); // Filter out any rows with invalid weightage
+
     console.log('Rows fetched:', rows); // Debugging the fetched rows
-    
+
     const columnOrder = rubric.column_order || []; // Retrieve column_order to preserve the correct order
-    
+
     res.json({
       rubricTitle: rubric.rubric_title,
       gradingColumns,
       rows,
       columnOrder,  // Include column order in the response
     });
-    
+
   } catch (error) {
     console.error('Error fetching rubric:', error);
     res.status(500).json({ error: 'Failed to fetch rubric' });
@@ -1641,6 +1399,7 @@ app.get('/api/rubric/:rubricId', async (req, res) => {
     client.release();
   }
 });
+
 
 //Update Rubric by ID
 app.put('/api/rubric/:rubricId', async (req, res) => {
@@ -1767,6 +1526,357 @@ app.delete('/api/rubric/:id', async (req, res) => {
   }
 });
 
+const generateFeedback = async (question, responses, selectedRubric) => {
+  try {
+    // Prepare the responses text to be included in the prompt
+    const responsesText = responses.map(response => {
+      if (response.sender && response.text) {
+        return `${response.sender}: ${response.text}`;
+      } else {
+        console.error('Invalid response format:', response);
+        return '';  // Skip invalid responses
+      }
+    }).join('\n');
+
+    // Format the rubric into a readable text string (if it's an object or array)
+    let formattedRubric;
+    
+    // If it's an object, stringify it; if it's already an array, we can process differently
+    if (Array.isArray(selectedRubric)) {
+      formattedRubric = selectedRubric.map(item => {
+        return `${item.name}: Max Score = ${item.maxScore}, Weight = ${item.weight}`;
+      }).join('\n');
+    } else {
+      formattedRubric = JSON.stringify(selectedRubric, null, 2); // Convert to formatted string for readability
+    }
+
+    const prompt = `
+    You are a grading assistant. Evaluate the following student responses based on the provided rubric:
+    Instead of saying the student say "You" or "You are" to describe the student.
+
+    **Question:**
+    "${question}"
+
+    **Student Responses:**
+    ${responsesText}
+
+    **Grading Rubric:**
+    ${formattedRubric}
+
+    **Important Instructions for Feedback:**
+    1. **General Feedback Guidelines:**
+        - Your feedback should focus on the overall quality of the student’s responses.
+        - Avoid including any grade-related or score-based information in the feedback.
+        - Provide constructive, supportive, and encouraging feedback to help the student understand how they can improve.
+        - Focus on the strengths of the response and highlight areas where the student can enhance their answer.
+        - Address the overall completeness and relevance of the response in relation to the rubric criteria.
+        - Use "You" or "You are" to directly address the student.
+
+    2. **Relating to the Rubric:**
+        - Evaluate the student's responses based on the criteria provided in the rubric (${formattedRubric}).
+        - Consider aspects such as clarity, depth, structure, relevance, engagement, and language use, as defined in the rubric.
+        - If the response lacks sufficient detail, structure, or engagement, provide suggestions for improvement.
+        - Ensure the feedback aligns with the rubric's expectations, emphasizing areas where the student can enhance their performance.
+
+    3. **Suggestions for Improvement:**
+        - Your feedback should provide general suggestions based on the rubric criteria but **not break down each rubric criterion individually**.
+        - If the rubric highlights the need for more depth or detail, encourage the student to expand their answers with examples or further elaboration.
+        - If the response lacked organization or clarity, suggest improving the structure by providing a clearer introduction, body, and conclusion.
+        - If the student’s answer was too short or lacked coverage, recommend elaborating on their points and explaining them more thoroughly to meet the expectations set in the rubric.
+        - If the response was too broad or unfocused, advise the student to focus more on specific details and ensure they remain on-topic throughout their answer.
+
+    4. **Tone of Feedback:**
+        - Your tone should be positive, supportive, and constructive.
+        - Highlight both strengths and weaknesses in a balanced and respectful way, making sure your feedback is **encouraging** and **motivating**.
+        - Use specific language to guide the student toward improving while acknowledging their efforts.
+        - Your feedback should inspire the student to take actionable steps toward improving their responses in future assessments.
+
+    5. **Example Feedback:**
+        - "You have made a good attempt by addressing the key points of the question, but your response could benefit from more specific examples to support your ideas. The structure of your answer could also be improved by making sure there is a clear introduction and conclusion to wrap up your thoughts."
+        - "You’ve demonstrated a solid understanding of the topic, but the response lacks some depth. Consider expanding on your points by providing more detailed examples and explanations to strengthen your answer."
+        - "Your response shows an understanding of the topic but lacks sufficient detail. Try to elaborate more on your ideas, and structure your answer more clearly to provide a more comprehensive response."
+        - "Your response is concise but misses key aspects of the question. Try to expand on your points and ensure that your answer addresses all the main parts of the question more thoroughly."
+
+    **Feedback Format:**
+    - Provide your feedback in a concise and positive manner.
+    - Ensure the feedback is specific to the rubric’s criteria but delivered in a **holistic** and **supportive** manner, without referencing specific scores.
+    - Focus on improvement and offer actionable advice for the student to better align their responses with the rubric's expectations.
+
+    **Note**: If no valid response is provided or if the response is insufficient, please give "NIL" in place of feedback.
+`;
+
+
+
+    // Use OpenAI's GPT-4-o-mini model to generate feedback
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use GPT-4 model (or mini if necessary)
+      messages: [
+        { role: 'system', content: 'You are a grading assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500, // Adjust for feedback length
+    });
+
+    // Process and return the AI response
+    const aiResponse = completion.choices[0].message.content.trim();
+    return aiResponse;
+
+  } catch (error) {
+    console.error('Error generating feedback:', error); // Log any error that occurs
+    return 'Error generating feedback.';
+  }
+};
+
+// Express route to handle feedback generation without rubric
+app.post('/generate-feedback', async (req, res) => {
+  const { question, responses, selectedRubric } = req.body;
+
+  if (!question || !responses || !selectedRubric) {
+    return res.status(400).json({ error: 'Question, responses, and rubric are required' });
+  }
+
+  try {
+    const feedback = await generateFeedback(question, responses, selectedRubric);
+    res.status(200).json({ feedback });
+  } catch (error) {
+    console.error('Error generating feedback:', error);
+    res.status(500).json({ error: 'Failed to generate feedback' });
+  }
+});
+
+const generateGrade = async (question, responses, selectedRubric) => {
+  let validGrade = false;  // Flag to track if we have received a valid grade
+  let retryCount = 0;  // Counter for the number of retries
+
+  while (!validGrade) {
+    try {
+      // Increment the retry counter every time we make an attempt
+      retryCount++;
+
+      // Log the rubric to check its structure
+      console.log('Received Rubric:', selectedRubric);
+
+      // Prepare the responses text to be included in the prompt
+      const responsesText = responses.map(response => {
+        if (response.sender && response.text) {
+          return `${response.sender}: ${response.text}`;
+        } else {
+          console.error('Invalid response format:', response);
+          return '';  // Skip invalid responses
+        }
+      }).join('\n');
+
+      // Format the rubric into a readable text string (if it's an object or array)
+      let formattedRubric;
+      
+      // If it's an object, stringify it; if it's already an array, we can process differently
+      if (Array.isArray(selectedRubric)) {
+        formattedRubric = selectedRubric.map(item => {
+          return `${item.name}: Max Score = ${item.maxScore}, Weight = ${item.weight}`;
+        }).join('\n');
+      } else {
+        formattedRubric = JSON.stringify(selectedRubric, null, 2); // Convert to formatted string for readability
+      }
+
+      // Construct the prompt to send to GPT
+      const prompt = `
+    You are a grading assistant, tasked with evaluating student responses based on a provided rubric. Please ensure that your evaluation is as accurate, consistent, and fair as possible. Use the following instructions to grade the responses:
+
+    **Question:**
+    "${question}"
+
+    **Student Responses:**
+    ${responsesText}
+
+    **Grading Rubric:**
+    ${formattedRubric}
+
+    **Important Instructions for Grading:**
+    1. **General Guidelines:**
+        - Your goal is to assign a grade based on the provided rubric for each student's response.
+        - Carefully read through the entire rubric, as it defines the specific criteria for grading.
+        - Ensure that each criterion is considered independently, and grade it based on the student's response to the specific aspect outlined in the rubric.
+        - Be strict about grading—if a response is not detailed enough or if it lacks any relevant content, it should not receive points for that criterion.
+        - If a student does not provide a response to a specific criterion or if the response is completely irrelevant, assign it a score of **0** for that criterion.
+        - If the response is incomplete or ambiguous, treat it as insufficient and score it lower or as **0** as per your judgment.
+    
+    2. **Detailed Instructions for Scoring:**
+        - For each rubric item, evaluate the response and determine if it meets the expectations described in the rubric.
+        - If the response is completely missing, score **0** for that criterion.
+        - If the response is present but very minimal or lacks depth (e.g., one or two words without clear relevance or explanation), score **0** for that criterion or assign a very low score based on how minimal the response is.
+        - If the response is present but only partially addresses the question or rubric criterion, assign a partial score reflecting the level of detail provided. Be sure to weigh partial responses fairly based on their contribution to the full answer.
+        - If the response is clear, thorough, and fully addresses the rubric criterion, assign the full score possible for that criterion.
+        - If the response provides more than expected, consider it positively but avoid giving excessive credit unless explicitly stated in the rubric.
+    
+    3. **Weighting and Calculation of Scores:**
+        - Each rubric criterion has a maximum score and a weight. For each rubric item:
+            - Divide the actual score assigned to the response by the maximum score for that criterion.
+            - Multiply the result by the weight of that criterion, which is specified in the rubric.
+            - Round the weighted score to **two decimal places**.
+        - Once all rubric items have been graded, **sum the weighted scores** for each criterion to obtain the **total grade**.
+    
+    4. **Final Grade Calculation:**
+        - The total grade should be calculated as a percentage, where the total weighted score is divided by the total possible weighted score (the sum of the maximum possible weighted scores for each rubric criterion).
+        - The grade should be expressed as a percentage (e.g., 85%, 92.5%).
+        - In cases where there are no responses or responses that do not meet the minimum standards (e.g., empty answers, one-word responses), assign a grade of **0%**.
+
+    5. **Handling Special Cases:**
+        - **No response**: If the student has provided no response to the question, mark all applicable rubric criteria as 0 and assign a **total grade of 0%**.
+        - **Irrelevant response**: If the response is completely off-topic or does not address the question in any meaningful way, treat it as a lack of response and assign **0** for the criterion.
+        - **Partial responses**: For responses that only partially address the question, grade them based on the depth and relevance of the content provided. Score **0** if the response is inadequate.
+        - **Overly brief responses**: Responses that are extremely brief (e.g., one-word answers) or lack any supporting explanation should not be awarded full points. If the response does not address the rubric criterion properly, assign a **0**.
+        - **Excessive or irrelevant content**: If the response contains irrelevant information, assign a lower score based on the relevance of the content to the rubric.
+        
+        6. **Consistency and Objectivity:**
+        - Ensure that grading is **consistent** and based solely on the rubric criteria. Avoid subjective interpretations.
+        - Be objective in your evaluation. If the response meets the criterion as described, assign the corresponding score.
+        - In case of doubt or ambiguity, default to a lower score rather than overestimating the student's response.
+
+    **Final Output:**
+    - Once all rubric criteria have been scored, calculate the total grade by summing the weighted scores for each criterion.
+    - Return the final grade as a percentage in the following format: "Total Grade: <score>%". For example, "Total Grade: 85%".
+    - If the student has not responded adequately, return "Total Grade: 0%".
+
+    Ensure that your grading follows the instructions strictly to guarantee fairness and consistency in evaluating all responses. 
+
+**Example Output Format:**
+    - "Total Grade: 92.5%"
+    - "Total Grade: 0%" (if no valid response)
+`;
+      // Send the prompt to GPT
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',  // Use GPT-4 model (or mini if necessary)
+        messages: [
+          { role: 'system', content: 'You are a grading assistant.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 1000  // Increase this to avoid response cutoff
+      });
+
+      // Get the AI's response
+      const aiResponse = completion.choices[0].message.content;
+
+      // Log the full AI response to debug
+      console.log('AI Response:', aiResponse); 
+
+      // Use regex to extract the grade in the expected format "Total Grade: <score>%"
+      const totalGradeMatch = aiResponse.trim().match(/Total Grade:\s*(\d+)%/);
+
+      // Check if the grade was extracted successfully
+      if (totalGradeMatch) {
+        const totalScore = totalGradeMatch[1];  // Extracted score
+        validGrade = true;  // Successfully got the grade, exit loop
+        console.log(`Successfully generated grade after ${retryCount} attempts.`);
+        return `${totalScore}%`;  // Return the grade as a percentage
+      } else {
+        // Continue retrying if the response format is invalid
+        console.error(`Invalid response format. Attempt number: ${retryCount}`);
+      }
+    } catch (error) {
+      // Log the error and continue retrying
+      console.error(`Error generating grade on attempt ${retryCount}:`, error);
+    }
+  }
+};
+
+
+
+
+
+app.post('/generate-grade', async (req, res) => {
+  try {
+    const { rubric, question, responses } = req.body;
+
+    // Log to check if the rubric is passed correctly
+    console.log('Received Question:', question);
+    console.log('Received Responses:', responses);
+    console.log('Received Rubric:', rubric);
+
+    // Pass the rubric, question, and responses to generateGrade
+    const grade = await generateGrade(question, responses, rubric);  
+    res.send({ grade });  // Send the generated grade back as a response
+  } catch (error) {
+    console.error('Error processing grade generation:', error);
+    res.status(500).send('Error generating grade.');
+  }
+});
+
+// Create a route to handle both feedback and grade generation
+app.post('/generate-feedback-and-grade', async (req, res) => {
+  const { question, responses, selectedRubric } = req.body;
+
+  if (!question || !responses || !selectedRubric) {
+    return res.status(400).json({ error: 'Question, responses, and rubric are required' });
+  }
+
+  try {
+    // Call both functions simultaneously
+    const [feedback, grade] = await Promise.all([
+      generateFeedback(question, responses, selectedRubric),
+      generateGrade(question, responses, selectedRubric)
+    ]);
+
+    // Send the feedback and grade back in the response
+    res.status(200).json({ feedback, grade });
+  } catch (error) {
+    console.error('Error generating feedback and grade:', error);
+    res.status(500).json({ error: 'Failed to generate feedback and grade' });
+  }
+});
+
+// Endpoint to save feedback and grade
+app.post('/save-feedback', async (req, res) => {
+  const { userId, username, topicId, grade, currentAttempts, feedback } = req.body;
+
+  try {
+    // Ensure that all required fields are being received correctly
+    if (!userId || !username || !topicId || !grade || !feedback) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // If username is actually email, fetch username based on email (if needed)
+    let actualUsername = username;
+    if (username.includes('@')) {
+      const result = await pool.query('SELECT username FROM users WHERE email = $1', [username]);
+      if (result.rows.length > 0) {
+        actualUsername = result.rows[0].username;
+      } else {
+        return res.status(404).json({ error: 'Email not found in the database' });
+      }
+    }
+
+    // Use the passed `currentAttempts` directly, no need to fetch it again
+    const updatedAttemptCount = currentAttempts + 1; // Increment the attempt count for feedback
+
+    // Insert feedback into the database, setting teacher_username as 'AI'
+    await pool.query(
+      'INSERT INTO feedback (user_id, username, topic_id, grade, feedback_text, attempt_count, teacher_username) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [userId, actualUsername, topicId, grade, feedback, updatedAttemptCount, 'AI'] // 'AI' as teacher_username
+    );
+
+    res.status(200).json({ success: 'Feedback saved successfully' });
+  } catch (error) {
+    console.error('Error saving feedback:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+app.get('/get-user-id-by-email', async (req, res) => {
+  const { email } = req.query;
+  try {
+    // Use pool.query instead of app.query
+    const result = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (result.rows.length > 0) {
+      res.json({ user_id: result.rows[0].id });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user ID:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 // Listening on port 5000

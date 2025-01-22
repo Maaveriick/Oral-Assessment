@@ -15,6 +15,7 @@ const EditTopic = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [generatedQuestionsSet, setGeneratedQuestionsSet] = useState(new Set());
+  const [timer, setTimer] = useState("");
 
   const navigate = useNavigate();
 
@@ -50,36 +51,39 @@ const EditTopic = () => {
         setDescription(topicData.description);
         setQuestions(topicData.questions || [""]);
         setSelectedClasses(topicData.classes || []);
+        setTimer(topicData.timer || ""); // Set the timer value
       } catch (error) {
         console.error("Error fetching topic:", error);
       }
     };
     fetchTopic();
   }, [id]);
+  
 
   const handleEdit = async (e) => {
     e.preventDefault();
-
+  
     const validQuestions = questions.filter((question) => question.trim() !== '');
-
+  
     const formData = new FormData();
     formData.append("topicname", topicName);
     formData.append("difficulty", difficulty);
     formData.append("description", description);
+    formData.append("timer", timer); // Include the timer value
     formData.append("teacher_username", username);
-
+  
     selectedClasses.forEach((className) => {
       formData.append("selectedClasses[]", className);
     });
-
+  
     if (videoFile) {
       formData.append("video", videoFile);
     }
-
+  
     validQuestions.forEach((question, index) => {
       formData.append(`questions[${index}]`, question);
     });
-
+  
     try {
       await axios.put(`http://localhost:5000/topics/${id}`, formData, {
         headers: {
@@ -91,7 +95,7 @@ const EditTopic = () => {
       console.error("Error editing topic:", error);
     }
   };
-
+  
   const handleQuestionChange = (index, value) => {
     const updatedQuestions = [...questions];
     updatedQuestions[index] = value.trim();
@@ -217,6 +221,18 @@ const EditTopic = () => {
             </video>
           </div>
         )}
+
+<div className="mb-3">
+  <label className="form-label">Timer (in minutes):</label>
+  <input
+    type="number"
+    className="form-control"
+    value={timer}
+    onChange={(e) => setTimer(e.target.value)}
+    required
+  />
+</div>
+
 
         <div className="mb-3">
           <label className="form-label">Available Classes</label>

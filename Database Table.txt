@@ -34,6 +34,8 @@ ADD COLUMN classes TEXT[];
 ALTER TABLE topic
 Add COLUMN teacher_username VARCHAR(255);
 
+ALTER TABLE topic ADD COLUMN timer INT;
+
 assessment_sessions,
 
 CREATE TABLE assessment_sessions (
@@ -84,14 +86,6 @@ AND EXISTS (
     WHERE student->>'username' = feedback.username
 );
 
-rubrics,
-
-CREATE TABLE rubrics (
-  id SERIAL PRIMARY KEY,
-  components JSONB,            -- JSON field to store components, descriptions, and grades
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 classes,
 
 CREATE TABLE classes (
@@ -101,6 +95,9 @@ CREATE TABLE classes (
     students JSONB NOT NULL -- To store an array of student usernames and emails
 );
 
+-- Add a column 'ai_enabled' to the classes table
+ALTER TABLE classes
+ADD COLUMN ai_enabled BOOLEAN;
 
 CREATE TABLE announcements (
     id SERIAL PRIMARY KEY,
@@ -126,6 +123,8 @@ CREATE TABLE rubric_rows (
     id SERIAL PRIMARY KEY,
     rubric_id INT NOT NULL REFERENCES rubric(id) ON DELETE CASCADE,
     criteria VARCHAR(255) NOT NULL,
-    weightage VARCHAR(10) NOT NULL,
-    grading_values JSONB NOT NULL 
+    weightage DECIMAL(5, 2) NOT NULL, -- Store weightage as a decimal (e.g., 0.3 for 30%)
+    grading_values JSONB NOT NULL
 );
+ALTER TABLE rubric_rows
+    ALTER COLUMN weightage TYPE DECIMAL USING weightage::DECIMAL;

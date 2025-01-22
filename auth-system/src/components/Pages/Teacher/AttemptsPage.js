@@ -150,6 +150,17 @@ const AttemptsPage = () => {
                   <td>{new Date(attempt.datetime).toLocaleString()}</td>
                   <td>
                     <div className="d-flex gap-2">
+
+                    <button
+                        className="btn btn-success"
+                        style={{ width: '140px' }}
+                        onClick={() =>
+                          navigate(`/create-feedback/${username}/${topicId}/${attempt.attempt_count}`)
+                        }
+                      >
+                        Create Feedback
+                      </button>
+                      
                       <button
                         className="btn btn-warning"
                         style={{ width: '140px' }}
@@ -161,23 +172,13 @@ const AttemptsPage = () => {
                       </button>
 
                       <button
-                        className="btn btn-secondary"
+                        className="btn btn-primary"
                         style={{ width: '100px' }}
                         onClick={() =>
                           navigate(`/view-feedback/${username}/${topicId}/${attempt.attempt_count}`)
                         }
                       >
                         View
-                      </button>
-
-                      <button
-                        className="btn btn-success"
-                        style={{ width: '140px' }}
-                        onClick={() =>
-                          navigate(`/create-feedback/${username}/${topicId}/${attempt.attempt_count}`)
-                        }
-                      >
-                        Create Feedback
                       </button>
 
                       <button
