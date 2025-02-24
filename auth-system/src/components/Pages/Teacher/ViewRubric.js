@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const ViewRubric = () => {
   const { rubricId } = useParams(); // Fetch rubricId from URL
   const [rubricData, setRubricData] = useState(null);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRubric = async () => {
@@ -77,6 +78,18 @@ const ViewRubric = () => {
           })}
         </tbody>
       </table>
+      <button
+          onClick={() => navigate('/crud-rubric')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Back
+        </button>
     </div>
   );
 };

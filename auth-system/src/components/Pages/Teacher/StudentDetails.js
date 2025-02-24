@@ -73,54 +73,18 @@ useEffect(() => {
   }
 
   return (
-    <div className="d-flex">
-      {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{ width: "250px", height: "100vh" }}
-      >
-        <h2
-          className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate("/hometeacher")} // Navigate to HomeAdmin on click
-          style={{ cursor: "pointer" }} // Optional: Adds cursor pointer to indicate it's clickable
-        >
-          Teacher Navigation
-        </h2>
-
-        <ul className="nav flex-column">
-          {/* Sidebar links */}
-          <li className="nav-item">
-                                <button
-                                  className="nav-link text-white"
-                                  style={{ background: 'none', border: 'none' }}
-                                  onClick={() => navigate('/crud-topic')} // Navigate to CRUD Topic
-                                >
-                                  <FaChalkboardTeacher className="me-2" /> Topic
-                                </button>
-                              </li>
-                    
-                              <li className="nav-item">
-                                <button
-                                  className="nav-link text-white"
-                                  style={{ background: 'none', border: 'none' }}
-                                  onClick={() => navigate('/class')} // Navigate to Classes page
-                                >
-                                  <FaChalkboardTeacher className="me-2" /> Classes
-                                </button>
-                              </li>
-                    
-                              <li className="nav-item">
-                                <button
-                                  className="nav-link text-white"
-                                  style={{ background: 'none', border: 'none' }}
-                                  onClick={() => navigate('/rubricsTeacher')} // Navigate to Classes page
-                                >
-                                  <FaChalkboardTeacher className="me-2" /> Rubrics
-                                </button>
-                              </li>
-          {/* Additional links can be added here */}
-        </ul>
-      </div>
+    <div className="container">
+    {/* Header */}
+    <header className="header">
+      <nav className="nav">
+        <div className="logo">OralAssessment</div>
+        <div>
+          <a href="/hometeacher">Home</a>
+          <a href="/crud-topic">Topics</a>
+          <a href="/class">Classes</a>
+        </div>
+      </nav>
+    </header>
 
       {/* Main Content */}
       <div className="flex-fill p-4">
@@ -175,6 +139,11 @@ useEffect(() => {
           </table>
         </div>
       </div>
+      {/* Footer */}
+     <footer className="footer">
+      <div className="footer-extra">Additional Information</div>
+      <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+    </footer>
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import './HomeStudent.css';  // Import the CSS file
+import speaking from './speaking.jpg';
 
 const HomeStudent = ({ username, onLogout }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -29,60 +30,50 @@ const HomeStudent = ({ username, onLogout }) => {
   }, [username]);
 
   return (
-    <div className="container-fluid bg-light">
+    <div className="container-fluid">
       {/* Header */}
-      <div className="row bg-primary text-white p-3">
-        <div className="col-12 text-center">
-          <h1 className="mb-0">Welcome, {username}!</h1>
-          <h4 className="mb-3">Your Student Portal</h4>
+      <header className="header">
+        <div className="nav">
+          <div className="logo-container">
+            <img src="logo.jpg" alt="Website Logo" id="logo" />
+          </div>
+          <nav>
+            <a href="homestudent">Home</a>
+            <a href="#logout" onClick={onLogout} className="logout">Logout</a>
+          </nav>
         </div>
-      </div>
+        <h1>Welcome, {username}!</h1>
+        <h4>Your Student Portal</h4>
+      </header>
 
-      {/* Main content area */}
+     {/* Main content area */}
       <div className="row">
         {/* Sidebar */}
         <div className="col-lg-4 col-md-5 col-12 p-3" style={{ minHeight: '80vh' }}>
-          <div className="card shadow-sm" style={{ height: '50%' }}>
-            <div className="card-body">
-              <h5 className="card-title">Menu</h5>
-              <ul className="list-unstyled">
-                <li>
-                  <button
-                    className="btn btn-outline-primary w-100 mb-2"
-                    onClick={() => navigate('/oral-assessment')}
-                  >
-                    Oral Assessment
-                  </button>
-                </li>
-                <li>
-                  <button className="btn btn-outline-primary w-100 mb-2" onClick={() => navigate('/student-feedback')}>
-                    Feedback
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={onLogout}
-                    className="btn btn-danger w-100"
-                    style={{
-                      height: '40px',
-                      fontSize: '15px',
-                      borderRadius: '50px',
-                      transition: 'transform 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                  >
-                    Logout
-                  </button>
-                </li>
-              </ul>
+          <div className="sidebar-container"> {/* Outer Card Container */}
+            <h5 className="content-header">Content</h5> {/* Content header */}
+            <div className="sidebar">
+              <div className="sidebar-button">
+                <button onClick={() => navigate('/oral-assessment')} className="btn">
+                  <img src={speaking} alt="Oral Assessment" className="img-fluid rounded mb-3" />
+                  <h3>Oral Assessment</h3>
+                  <p>Access the rubric management page to create and manage rubrics.</p>
+                </button>
+              </div>
+              <div className="sidebar-button">
+                <button onClick={() => navigate('/student-feedback')} className="btn">
+                  <img src={speaking} alt="Feedback" className="img-fluid rounded mb-3" />
+                  <h3>Feedback</h3>
+                  <p>View your performance feedback.</p>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Main content area */}
         <div className="col-lg-8 col-md-7 col-12 p-3">
-          <div className="card">
+          <div className="card announcement-card">
             <div className="card-body">
               <h5 className="card-title">Announcements</h5>
               {loading ? (
@@ -93,7 +84,7 @@ const HomeStudent = ({ username, onLogout }) => {
                 <p>No announcements found.</p>
               ) : (
                 announcements.map((announcement) => (
-                  <div key={announcement.id} className="card mb-3">
+                  <div key={announcement.id} className="announcement-card">
                     <div className="card-body">
                       <h5 className="card-title">{announcement.title}</h5>
                       <p className="card-text">{announcement.content}</p>
@@ -106,6 +97,11 @@ const HomeStudent = ({ username, onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="footer">
+        <p>&copy; 2025 Student Learning Space. All Rights Reserved.</p>
+      </footer>
     </div>
   );
 };

@@ -1,0 +1,256 @@
+/* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #f5f7fa; /* Changed to match the container background */
+  color: #333;
+}
+
+/* Header */
+.header {
+  background-color: #4a4e69;
+  padding: 20px 0;
+  color: white;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 32px;
+}
+
+.header h4 {
+  font-size: 20px;
+}
+
+/* Navigation */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+}
+
+.nav .logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.nav a {
+  color: white;
+  text-decoration: none;
+  margin: 0 15px;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
+.logout {
+  background-color: #e74c3c;
+  padding: 8px 15px;
+  border-radius: 20px;
+}
+
+.logout:hover {
+  background-color: #c0392b;
+}
+
+/* Main content layout */
+.row {
+  display: flex;
+  align-items: stretch; /* Ensures equal height columns */
+}
+
+/* Sidebar Content Title */
+.content-header {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Ensure Sidebar Buttons are at the same height */
+.sidebar-container {
+  background-color: white; /* White background for the outer card */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  height: 100%; /* Ensure it takes the full height */
+}
+
+/* Sidebar Button Styling */
+.sidebar-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease;
+  margin-bottom: 15px; /* Spacing between sidebar buttons */
+}
+
+.sidebar-button img {
+  width: 100px;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.sidebar-button:hover {
+  transform: scale(1.05);
+}
+
+.sidebar-button h3 {
+  font-size: 18px;
+  margin-top: 10px;
+}
+
+.sidebar-button p {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Main content cards should align properly */
+.card.announcement-card {
+  margin-top: 20px;
+}
+
+/* Announcement Cards */
+.announcement-card {
+  background: white;
+  border-radius: 10px;
+  margin: 15px 0;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.announcement-card h5 {
+  font-size: 18px;
+}
+
+.announcement-card p {
+  font-size: 14px;
+}
+
+.announcement-card small {
+  color: #888;
+}
+
+/* Main Content Layout */
+.row {
+  display: flex;
+}
+
+.col-lg-4, .col-lg-8 {
+  flex: 1;
+  padding: 15px;
+}
+
+/* Hero Section */
+.hero {
+  background: url('speaking.jpg') no-repeat center center/cover;
+  color: white;
+  text-align: center;
+  padding: 50px 20px;
+}
+
+.hero h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.hero p {
+  font-size: 18px;
+}
+
+/* Features Section */
+.features {
+  display: flex;
+  justify-content: space-around;
+  padding: 60px 40px;
+}
+
+.feature {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 300px;
+  flex-grow: 1;
+  margin: 0 20px;
+  transition: transform 0.3s ease;
+}
+
+.feature img {
+  max-width: 100%;
+  border-radius: 15px;
+}
+
+.feature:hover {
+  transform: translateY(-10px);
+}
+
+/* About Us Section */
+.about-us {
+  background-color: #ffffff;
+  padding: 50px 40px;
+  text-align: center;
+}
+
+.about-us h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.about-us p {
+  font-size: 18px;
+  color: #666;
+}
+
+/* Footer Extra Section */
+.footer-extra {
+  background-color: #4a4e69;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Footer Section */
+.footer {
+  background-color: #4a4e69;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .features {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .feature {
+    margin-bottom: 20px;
+    max-width: 80%;
+  }
+}

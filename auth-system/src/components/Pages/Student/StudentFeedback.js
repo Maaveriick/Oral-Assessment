@@ -50,40 +50,17 @@ const StudentFeedback = ({ username }) => {
   }, []);
 
   return (
-    <div>
-      {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div className="container">
-          <a className="navbar-brand" href="#">
-            Student Feedback
-          </a>
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <a className="nav-link" href="./homestudent">
-                  Homepage
-                </a>
-              </li>
-              <li className="nav-item">
-                <span className="nav-link text-light">
-                  Logged in as: <strong>{username}</strong>
-                </span>
-              </li>
-            </ul>
-          </div>
+    
+      <div className="container">
+    {/* Header */}
+    <header className="header">
+      <nav className="nav">
+        <div className="logo">OralAssessment</div>
+        <div>
+          <a href="/homestudent">Home</a>
         </div>
       </nav>
+    </header>
 
       {/* Main Content */}
       <div className="container mt-5">
@@ -136,6 +113,11 @@ const StudentFeedback = ({ username }) => {
           </div>
         </div>
       </div>
+      {/* Footer */}
+      <footer className="footer">
+          <div className="footer-extra">Additional Information</div>
+          <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+        </footer>
     </div>
   );
 };

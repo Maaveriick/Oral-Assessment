@@ -64,37 +64,20 @@ const AnalysisList = () => {
   }, [classId]);
 
   return (
-    <div className="d-flex">
-      <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
-        <h2
-          className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate('/hometeacher')}
-          style={{ cursor: 'pointer' }}
-        >
-          Teacher Navigation
-        </h2>
-        <ul className="nav flex-column">
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/crud-topic')}
-            >
-              <FaChalkboardTeacher className="me-2" /> Topic
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/class')}
-            >
-              <FaChalkboardTeacher className="me-2" /> Class
-            </button>
-          </li>
-        </ul>
+    <div className="container">
+  {/* Header */}
+  <header className="header">
+    <nav className="nav">
+      <div className="logo">OralAssessment</div>
+      <div>
+        <a href="/hometeacher">Home</a>
+        <a href="/crud-topic">Topics</a>
+        <a href="/class">Classes</a>
       </div>
+    </nav>
+  </header>
 
+    <div className="d-flex">
       <div className="flex-fill p-4">
         <h1 className="mb-4">Students List</h1>
         {error && <div className="alert alert-danger">{error}</div>}
@@ -128,7 +111,15 @@ const AnalysisList = () => {
             </tbody>
           </table>
         </div>
+        
       </div>
+      
+    </div>
+     {/* Footer */}
+     <footer className="footer">
+      <div className="footer-extra">Additional Information</div>
+      <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+    </footer>
     </div>
   );
 };

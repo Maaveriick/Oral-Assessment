@@ -422,7 +422,7 @@ app.delete('/topics/:id', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
+/*
 // CRUD for Feedback
 app.post('/feedbacks', async (req, res) => {
   const { username, teacher_username, topicId, attempt_count, feedback, grade, user_id,} = req.body;
@@ -445,8 +445,29 @@ app.post('/feedbacks', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
-
+*/
+app.post('/feedbacks', async (req, res) => {
+  const { username, teacher_username, topicId, attempt_count, feedback, grade, user_id, classId } = req.body;
+ 
+  console.log('Request Body:', req.body); // Log the entire request body
+  console.log('classId:', classId);       // Log the specific classId field
+ 
+  if (!username || !teacher_username || !topicId || !attempt_count || !feedback || !grade || !classId) {
+    return res.status(400).send('All fields are required, including classId.');
+  }
+ 
+  try {
+    await pool.query(
+      `INSERT INTO feedback (username, teacher_username, topic_id, attempt_count, feedback_text, grade, user_id, class_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [username, teacher_username, topicId, attempt_count, feedback, grade, user_id, classId]
+    );
+    res.status(201).send('Feedback and grade saved successfully');
+  } catch (err) {
+    console.error('Error saving feedback:', err.message);
+    res.status(500).send('Server error');
+  }
+});
 
 app.post('/feedbacks/details', async (req, res) => {
   const { username, topicId, attempt_count } = req.body;
@@ -600,9 +621,8 @@ app.post('/ai_response', async (req, res) => {
 });
 
 
-// Chat Logs
 app.post('/end_session', async (req, res) => {
-  const { email, topicId, generatedQuestion, responses, datetime } = req.body;
+  const { email, topicId, generatedQuestion, responses, datetime, timeElapsed } = req.body; // Add timeElapsed
 
   try {
     const client = await pool.connect();
@@ -629,11 +649,11 @@ app.post('/end_session', async (req, res) => {
     );
     const currentAttempts = result.rows[0]?.max_attempts || 0;
 
-    // Insert the session with incremented attempt count, user_id, and username
+    // Insert the session with incremented attempt count, user_id, username, and time_elapsed
     await client.query(
-      `INSERT INTO assessment_sessions (user_id, username, topic_id, question, responses, datetime, attempt_count)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [userId, username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1]
+      `INSERT INTO assessment_sessions (user_id, username, topic_id, question, responses, datetime, attempt_count, time_elapsed)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1, timeElapsed] 
     );
 
     client.release();
@@ -643,8 +663,50 @@ app.post('/end_session', async (req, res) => {
     res.status(500).send({ error: 'Failed to save session data.' });
   }
 });
+/*
+app.post('/end_session', async (req, res) => {
+  const { email, topicId, generatedQuestion, responses, datetime, timeElapsed } = req.body; // Add timeElapsed
 
+  try {
+    const client = await pool.connect();
 
+    // Fetch user details based on email (including user_id and username)
+    const userResult = await client.query(
+      `SELECT id, username FROM users WHERE email = $1`,
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const userId = userResult.rows[0].id;
+    const username = userResult.rows[0].username;
+
+    // Fetch the current attempt count for this user and topic
+    const result = await client.query(
+      `SELECT MAX(attempt_count) AS max_attempts 
+       FROM assessment_sessions 
+       WHERE user_id = $1 AND topic_id = $2`,
+      [userId, topicId]
+    );
+    const currentAttempts = result.rows[0]?.max_attempts || 0;
+
+    // Insert the session with incremented attempt count, user_id, username, and time_elapsed
+    await client.query(
+      `INSERT INTO assessment_sessions (user_id, username, topic_id, question, responses, datetime, attempt_count, time_elapsed)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, username, topicId, generatedQuestion, JSON.stringify(responses), datetime, currentAttempts + 1, timeElapsed] // Include timeElapsed
+    );
+
+    client.release();
+    res.status(200).send({ message: 'Session data saved successfully.' });
+  } catch (error) {
+    console.error('Error saving session data:', error);
+    res.status(500).send({ error: 'Failed to save session data.' });
+  }
+});
+*/
 
 app.post('/attempts', async (req, res) => {
   const { username, topicId } = req.body;
@@ -1121,7 +1183,7 @@ app.get('/api/teacher/announcements/:username', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
+/*
 app.get('/grades', async (req, res) => {
   const { classId, teacherUsername } = req.query; // Extract from query parameters
 
@@ -1166,6 +1228,67 @@ app.get('/grades', async (req, res) => {
     res.status(500).json({ error: 'Error fetching grades.' });
   }
 });
+*/
+
+app.get('/grades', async (req, res) => {
+  const { classId, teacherUsername } = req.query; // Extract from query parameters
+
+  // If classId or teacherUsername is not provided, return an error
+  if (!classId || !teacherUsername) {
+    return res.status(400).json({ error: 'Missing classId or teacherUsername' });
+  }
+
+  try {
+    // Fetch grades for the specific classId
+    const query = 
+      `SELECT username, grade, COALESCE(attempt_count, 0) as attempt_count
+       FROM feedback
+       WHERE class_id = $1`;
+    const result = await pool.query(query, [classId]);  // Use classId from the request
+
+    const grades = result.rows;
+
+    // Validate and clean up grade data
+    const cleanedGrades = grades.map(student => {
+      // Clean the grade (remove % and ensure it's a valid number)
+      let grade = student.grade.replace('%', '').trim(); // Remove the '%' and any extra spaces
+      grade = parseFloat(grade); // Convert to float
+
+      // If grade is not a valid number, set it to 0
+      if (isNaN(grade)) {
+        grade = 0;
+      }
+
+      return { ...student, grade }; // Re-attach cleaned grade
+    });
+
+    // Calculate Class Average
+    const totalGrades = cleanedGrades.reduce((acc, student) => acc + student.grade, 0);
+    const classAverage = cleanedGrades.length > 0 ? totalGrades / cleanedGrades.length : 0;
+
+    // Calculate Grade Distribution
+    const gradeDistribution = { A: 0, B: 0, C: 0, D: 0, E:0, F: 0 };
+    cleanedGrades.forEach((student) => {
+      const grade = student.grade;
+      if (grade >= 70) gradeDistribution.A++;
+      else if (grade >= 60) gradeDistribution.B++;
+      else if (grade >= 55) gradeDistribution.C++;
+      else if (grade >= 50) gradeDistribution.D++;
+      else if (grade >= 40) gradeDistribution.E++;
+      else gradeDistribution.F++;
+    });
+
+    res.json({
+      grades: cleanedGrades,
+      classAverage,
+      gradeDistribution,
+    });
+  } catch (error) {
+    console.error('Error fetching grades:', error);
+    res.status(500).json({ error: 'Error fetching grades.' });
+  }
+});
+
 
 app.get('/individual-analysis', async (req, res) => {
   const { classId, userId, username } = req.query;
@@ -1191,22 +1314,23 @@ app.get('/individual-analysis', async (req, res) => {
 
     // Calculate Total Points, Total Attempts, and Grade Distribution
     let totalPoints = 0;
-    let gradeDistribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    let gradeDistribution = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
 
     // Instead of summing attempt counts, count the number of records for totalAttempts
     const totalAttempts = individualGrades.length; // Count the number of grades, not sum attempts
 
     individualGrades.forEach((gradeData) => {
-      const grade = Number(gradeData.grade);
+      const grade = parseInt(gradeData.grade.replace('%', ''), 10); // Clean the percentage
 
       // Add the grade to totalPoints (no multiplication with attempt_count)
       totalPoints += grade;
 
       // Calculate grade distribution once for each grade
-      if (grade >= 36) gradeDistribution.A++;
-      else if (grade >= 31) gradeDistribution.B++;
-      else if (grade >= 26) gradeDistribution.C++;
-      else if (grade >= 21) gradeDistribution.D++;
+      if (grade >= 70) gradeDistribution.A++;
+      else if (grade >= 60) gradeDistribution.B++;
+      else if (grade >= 55) gradeDistribution.C++;
+      else if (grade >= 50) gradeDistribution.D++;
+      else if (grade >= 40) gradeDistribution.E++;
       else gradeDistribution.F++;
     });
 
@@ -1231,10 +1355,11 @@ app.get('/individual-analysis', async (req, res) => {
 
 // Helper function to determine grade distribution (A, B, C, D, F)
 function getGradeDistribution(grade) {
-  if (grade >= 36) return 'A';
-  if (grade >= 31) return 'B';
-  if (grade >= 26) return 'C';
-  if (grade >= 21) return 'D';
+  if (grade >= 70) return 'A';
+  if (grade >= 60) return 'B';
+  if (grade >= 55) return 'C';
+  if (grade >= 50) return 'D';
+  if (grade >= 40) return 'E';
   return 'F';
 }
 
@@ -1799,6 +1924,12 @@ app.post('/generate-grade', async (req, res) => {
     console.error('Error processing grade generation:', error);
     res.status(500).send('Error generating grade.');
   }
+  if (breakdownMatches) {
+    console.log('Grading Breakdown:');
+    breakdownMatches.forEach(detail => console.log(detail));
+} else {
+    console.error('No grading breakdown found in AI response.');
+}
 });
 
 // Create a route to handle both feedback and grade generation
@@ -1826,15 +1957,13 @@ app.post('/generate-feedback-and-grade', async (req, res) => {
 
 // Endpoint to save feedback and grade
 app.post('/save-feedback', async (req, res) => {
-  const { userId, username, topicId, grade, currentAttempts, feedback } = req.body;
-
+  const { userId, username, topicId, grade, feedback } = req.body;
+ 
   try {
-    // Ensure that all required fields are being received correctly
     if (!userId || !username || !topicId || !grade || !feedback) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    // If username is actually email, fetch username based on email (if needed)
+ 
     let actualUsername = username;
     if (username.includes('@')) {
       const result = await pool.query('SELECT username FROM users WHERE email = $1', [username]);
@@ -1844,23 +1973,28 @@ app.post('/save-feedback', async (req, res) => {
         return res.status(404).json({ error: 'Email not found in the database' });
       }
     }
-
-    // Use the passed `currentAttempts` directly, no need to fetch it again
-    const updatedAttemptCount = currentAttempts + 1; // Increment the attempt count for feedback
-
-    // Insert feedback into the database, setting teacher_username as 'AI'
-    await pool.query(
-      'INSERT INTO feedback (user_id, username, topic_id, grade, feedback_text, attempt_count, teacher_username) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [userId, actualUsername, topicId, grade, feedback, updatedAttemptCount, 'AI'] // 'AI' as teacher_username
+ 
+    const attemptResult = await pool.query(
+      `SELECT MAX(attempt_count) AS max_attempts
+       FROM assessment_sessions
+       WHERE user_id = $1 AND topic_id = $2`,
+      [userId, topicId]
     );
-
-    res.status(200).json({ success: 'Feedback saved successfully' });
+ 
+    const currentAttempts = attemptResult.rows[0]?.max_attempts || 0;
+ 
+    await pool.query(
+      `INSERT INTO feedback (user_id, username, topic_id, grade, feedback_text, attempt_count, teacher_username)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, actualUsername, topicId, grade, feedback, currentAttempts, 'AI']
+    );
+ 
+    res.status(200).json({ success: 'Feedback saved successfully', attempt_count: currentAttempts });
   } catch (error) {
     console.error('Error saving feedback:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 app.get('/get-user-id-by-email', async (req, res) => {
   const { email } = req.query;
@@ -1875,6 +2009,49 @@ app.get('/get-user-id-by-email', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user ID:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to get average time_elapsed
+app.get('/average-time', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT AVG(COALESCE(CAST("time_elapsed" AS numeric), 0)) AS average_time
+      FROM "assessment_sessions";
+    `);
+    res.json({ averageTime: result.rows[0].average_time }); // Sends back the average time
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+app.get('/flag_attempts', async (req, res) => {
+  const { username, topicId } = req.query;
+
+  try {
+    const client = await pool.connect();
+
+    // Fetch attempts data based on the provided username and topicId
+    const attemptsResult = await client.query(
+      `SELECT user_id, attempt_count, datetime
+       FROM assessment_sessions 
+       WHERE username = $1 AND topic_id = $2 
+       ORDER BY attempt_count ASC`,
+      [username, topicId]
+    );
+
+    // Check if any attempts are found
+    if (attemptsResult.rows.length === 0) {
+      return res.status(404).send({ error: 'No attempts found for this user and topic' });
+    }
+
+    // Return the fetched attempts to the frontend
+    res.status(200).send({ attempts: attemptsResult.rows });
+    client.release();
+  } catch (error) {
+    console.error('Error fetching flaggable attempts:', error);
+    res.status(500).send({ error: 'Failed to fetch flaggable attempts.' });
   }
 });
 

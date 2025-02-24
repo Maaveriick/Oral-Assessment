@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { ColorModeContext, useMode } from "./theme";
 
 import Home from './components/Home';
 import Register from './components/Register';
@@ -49,6 +51,10 @@ import CreateRubric from './components/Pages/Teacher/CreateRubric';
 import RubricList from './components/Pages/Teacher/RubricList';
 import ViewRubric from './components/Pages/Teacher/ViewRubric';
 import EditRubric from './components/Pages/Teacher/EditRubric';
+
+import Dashboard from './components/Pages/Teacher/Dashboard';
+import FlaggedAttempts from './components/Pages/Teacher/FlaggedAttempts';
+
 
 
 const App = () => {
@@ -150,7 +156,13 @@ const App = () => {
                     <Route path="/create-rubric" element={user.role === 'Teacher' ? <CreateRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
                     <Route path="/edit-rubric/:rubricId" element={user.role === 'Teacher' ? <EditRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
                     <Route path="/view-rubric/:rubricId" element={user.role === 'Teacher' ? <ViewRubric onLogout={handleLogout} /> : <Navigate to="/" />} />
-                
+
+                    <Route path="/dashboard" element={user.role === 'Teacher' ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />} />
+
+                    <Route path="/flagged-attempts" element={user.role === 'Teacher' ? <FlaggedAttempts onLogout={handleLogout} /> : <Navigate to="/" />} />
+
+                    
+
                 </Routes>
             </div>
         </Router>

@@ -68,27 +68,18 @@ const AnnouncementList = () => {
   };
 
   return (
-    <div className="d-flex">
-      <div className="sidebar bg-dark text-white p-4" style={{ width: '250px', height: '100vh' }}>
-        <h2
-          className="text-center mb-4"
-          onClick={() => navigate('/hometeacher')}
-          style={{ cursor: 'pointer' }}
-        >
-          Teacher Navigation
-        </h2>
-        <ul className="nav flex-column">
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/class')}
-            >
-              <FaChalkboardTeacher className="me-2" /> Classes
-            </button>
-          </li>
-        </ul>
-      </div>
+    <div className="container">
+    {/* Header */}
+    <header className="header">
+      <nav className="nav">
+        <div className="logo">OralAssessment</div>
+        <div>
+          <a href="/hometeacher">Home</a>
+          <a href="/crud-topic">Topics</a>
+          <a href="/class">Classes</a>
+        </div>
+      </nav>
+    </header>
 
       <div className="flex-fill p-4">
         <h1 className="mb-4">
@@ -154,6 +145,11 @@ const AnnouncementList = () => {
           </table>
         </div>
       </div>
+       {/* Footer */}
+     <footer className="footer">
+      <div className="footer-extra">Additional Information</div>
+      <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+    </footer>
     </div>
   );
 };

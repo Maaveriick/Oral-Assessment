@@ -8,7 +8,8 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaChalkboardTeacher } from 'react-icons/fa';
 
-const PerformanceManagement = () => {
+
+const PerformanceManagement = ({onLogout}) => {
   const [classes, setClasses] = useState([]);
   const tableRef = useRef(null);
   const navigate = useNavigate();
@@ -47,93 +48,82 @@ const PerformanceManagement = () => {
     }
   }, [classes]);
 
-  return (
-    <div className="d-flex">
-      {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{ width: '250px', height: '100vh' }}
-      >
-        <h2
-          className="text-center mb-4"
-          onClick={() => navigate('/hometeacher')}
-          style={{ cursor: 'pointer' }}
-        >
-          Teacher Navigation
-        </h2>
+  const handleLogout = () => {
+    console.log("Logout triggered");
+    localStorage.removeItem('username'); 
+    navigate('/'); // Redirect to login page
+  };
 
-        <ul className="nav flex-column">
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/crud-topic')}
-            >
-              <FaChalkboardTeacher className="me-2" /> Topic
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: 'none', border: 'none' }}
-              onClick={() => navigate('/class')}
-            >
-              <FaChalkboardTeacher className="me-2" /> Classes
-            </button>
-          </li>
-        </ul>
+ return (
+  <div className="container">
+  {/* Header */}
+  <header className="header">
+    <nav className="nav">
+      <div className="logo">OralAssessment</div>
+      <div>
+        <a href="/hometeacher">Home</a>
+        <a href="/crud-topic">Topics</a>
+        <a href="/class">Classes</a>
       </div>
+    </nav>
+  </header>
 
-      {/* Main Content */}
-      <div className="flex-fill p-4">
-        <h1 className="mb-4">Your Classes</h1>
+    {/* Main Content */}
+    <div className="flex-fill p-4">
+      <h1 className="mb-4">Your Classes</h1>
 
-        {classes.length === 0 ? (
-          <div className="alert alert-info">No class assigned to you yet.</div>
-        ) : (
-          <div className="overflow-auto">
-            <table
-              id="classesTable"
-              ref={tableRef}
-              className="table table-bordered table-striped"
-            >
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Class Name</th>
-                  <th>Teacher Username</th>
-                  <th>Actions</th>
+      {classes.length === 0 ? (
+        <div className="alert alert-info">No class assigned to you yet.</div>
+      ) : (
+        <div className="overflow-auto">
+          <table
+            id="classesTable"
+            ref={tableRef}
+            className="table table-bordered table-striped"
+          >
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Class Name</th>
+                <th>Teacher Username</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classes.map((classItem) => (
+                <tr key={classItem.id}>
+                  <td>{classItem.id}</td>
+                  <td>{classItem.class_name}</td>
+                  <td>{classItem.teacher_username}</td>
+                  <td>
+                    <button
+                      className="btn btn-success me-2"
+                      onClick={() => navigate(`/class-analysis?classId=${classItem.id}`)}
+                    >
+                      View Class Performance
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/analysis-list?classId=${classItem.id}`)}
+                    >
+                      View Individual Performance
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {classes.map((classItem) => (
-                  <tr key={classItem.id}>
-                    <td>{classItem.id}</td>
-                    <td>{classItem.class_name}</td>
-                    <td>{classItem.teacher_username}</td>
-                    <td>
-                      <button
-                        className="btn btn-success me-2"
-                        onClick={() => navigate(`/class-analysis?classId=${classItem.id}`)}
-                      >
-                        View Class Performance
-                      </button>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => navigate(`/analysis-list?classId=${classItem.id}`)}
-                      >
-                        View Individual Performance
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  );
+
+    {/* Footer */}
+    <footer className="footer">
+      <div className="footer-extra">Additional Information</div>
+      <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+    </footer>
+  </div>
+);
 };
 
 export default PerformanceManagement;

@@ -41,63 +41,24 @@ const Rubrics = () => {
   };
 
   return (
-    <div className="d-flex">
-      {/* Sidebar */}
-      <div
-        className="sidebar bg-dark text-white p-4"
-        style={{
-          width: "250px",
-          height: "100vh",
-          position: "fixed",
-          top: 0,
-          left: 0,
-        }}
-      >
-        <h2
-          className="text-center mb-4 cursor-pointer"
-          onClick={() => navigate("/hometeacher")}
-        >
-          Teacher Navigation
-        </h2>
-
-        <ul className="nav flex-column">
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/crud-topic")}
-            >
-              <FaChalkboardTeacher className="me-2" /> Topic
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/class")}
-            >
-              <FaChalkboardTeacher className="me-2" /> Classes
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              className="nav-link text-white"
-              style={{ background: "none", border: "none" }}
-              onClick={() => navigate("/rubricsTeacher")}
-            >
-              <FaChalkboardTeacher className="me-2" /> Rubrics
-            </button>
-          </li>
-        </ul>
-      </div>
+    <div className="container">
+      {/* Header */}
+      <header className="header">
+        <nav className="nav">
+          <div className="logo">OralAssessment</div>
+          <div>
+            <a href="/hometeacher">Home</a>
+            <a href="/crud-topic">Topics</a>
+            <a href="/class">Classes</a>
+          </div>
+        </nav>
+      </header>
 
       {/* Main content */}
       <div
         className="container mt-5"
         style={{
-          marginLeft: "250px",
+          marginLeft: "0px",
           paddingTop: "20px",
           flex: 1,
         }}
@@ -143,6 +104,11 @@ const Rubrics = () => {
           <p className="text-center">No rubrics available.</p>
         )}
       </div>
+       {/* Footer */}
+      <footer className="footer">
+        <div className="footer-extra">Additional Information</div>
+        <div>&copy; 2025 OralAssessment. All rights reserved.</div>
+      </footer>
     </div>
   );
 };

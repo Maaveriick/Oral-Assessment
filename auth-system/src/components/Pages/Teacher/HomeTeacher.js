@@ -1,33 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
+import 'bootstrap/dist/css/bootstrap.min.css';
 import { Card, Button, Form, Modal } from 'react-bootstrap'; // Use Card, Button, Form, Modal from Bootstrap
 import axios from 'axios';
+import speaking from './speaking.jpg';
+import './HomeTeacher.css';
 
 const HomeTeacher = ({ username, onLogout }) => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
-  const [classId, setClassId] = useState(null); // Declare state for classId
-  const [aiEnabled, setAiEnabled] = useState(false); // Default to false
-  const [showSettingsModal, setShowSettingsModal] = useState(false); // State to control modal visibility
+  const [classId, setClassId] = useState(null); 
+  const [aiEnabled, setAiEnabled] = useState(false); 
+  const [showSettingsModal, setShowSettingsModal] = useState(false); 
   
   useEffect(() => {
     const fetchClasses = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/classes/teacher/${username}`);
         setClasses(response.data);
-        console.log('Classes assigned to teacher:', response.data); // Log the classes
       } catch (err) {
         console.error('Error fetching classes:', err);
       }
     };
-  
     fetchClasses();
   }, [username, navigate]);
-
-  useEffect(() => {
-    console.log('Signed in as:', username);
-  }, [username]);
 
   useEffect(() => {
     if (classId !== null) {
@@ -35,34 +31,30 @@ const HomeTeacher = ({ username, onLogout }) => {
         try {
           const response = await fetch(`http://localhost:5000/classes/${classId}`);
           const classData = await response.json();
-          setAiEnabled(classData.ai_enabled); // Set the initial AI status
+          setAiEnabled(classData.ai_enabled);
         } catch (error) {
           console.error("Failed to fetch class status:", error);
         }
       };
       fetchClassStatus();
     }
-  }, [classId]); // Only fetch status when classId changes
+  }, [classId]);
 
   const handleSwitchChange = async (e, classId) => {
     const newStatus = e.target.checked;
 
-    // Update local state immediately
     setClasses((prevClasses) => 
       prevClasses.map((classItem) => 
         classItem.id === classId 
-          ? { ...classItem, ai_enabled: newStatus } // Update ai_enabled in local state
+          ? { ...classItem, ai_enabled: newStatus }
           : classItem
       )
     );
 
     try {
-      // Send the updated status to the backend for the specific teacher and class
       const response = await fetch(`http://localhost:5000/classes/teacher/${username}/${classId}/ai-toggle`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aiEnabled: newStatus }),
       });
 
@@ -77,142 +69,121 @@ const HomeTeacher = ({ username, onLogout }) => {
     }
   };
 
-  const handleShowModal = () => setShowSettingsModal(true); // Show modal
-  const handleCloseModal = () => setShowSettingsModal(false); // Close modal
+  const handleShowModal = () => setShowSettingsModal(true);
+  const handleCloseModal = () => setShowSettingsModal(false);
 
   return (
-    <div className="container-fluid d-flex flex-column justify-content-center align-items-center min-vh-100 bg-light">
+    <div className="container">
+      {/* Header Section */}
+      <header className="header">
+        <div className="nav">
+        <div className="logo">OralAssessment</div>
+        <h1>Welcome, {username}!</h1>
+          <nav>
+            <a href="/hometeacher">Home </a>
+            <a href="crud-topic">Topic</a>
+            <a href="class">Classes</a>
+            <a href="#logout" onClick={onLogout} className="logout">Logout</a>
+            {/* Settings Button */}
+            <button 
+              className="settings" 
+              onClick={handleShowModal} // Show AI settings modal
+            >
+              Settings
+            </button>
+          </nav>
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <div className="text-center mb-5 w-100 p-5 bg-primary text-white rounded-3 shadow-lg">
-        <h1 className="display-4">Welcome, {username}!</h1>
-        <p className="lead">Manage your topics, track student progress, and create rubrics all in one place.</p>
+      <section className="hero">
+        <h1>Welcome to the Oral Assessment</h1>
+        <p>Optimising Oral Assesments To Be Hassle-Free And Fun</p>
+      </section>
+
+      {/* Main Content Section */}
+      <section className="features">
+         {/* Card 1 */}
+      <div 
+      className="feature"
+      onClick={() => navigate('/crud-topic')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>Create Assignment</h3>
+      <p>Directs to the "Create Topic" page to create new assignments and topics.</p>
       </div>
-  
-      {/* Action Cards Section */}
-      <div className="row justify-content-center mb-4">
-        {/* Card 1 */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <i className="bi bi-file-earmark-plus mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
-              <Card.Title className="text-black h5">Create Assignment</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/crud-topic')}
-              >
-                <i className="bi bi-file-earmark-plus me-2"></i> Create Topic
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Directs to the "Create Topic" page to create new assignments and topics.
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
-  
-        {/* Card 2 */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <i className="bi bi-bar-chart-line mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
-              <Card.Title className="text-black h5">Track Student Progress</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/class')}
-              >
-                <i className="bi bi-bar-chart-line me-2"></i> View Student's Progress
-              </Button>
-              <Card.Text className="text-black mt-3">
-                View the overall progress and performance of students in your classes.
-              </Card.Text>
-  
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/performance-management')}
-              >
-                <i className="bi bi-bar-chart-line me-2"></i> Performance Management System
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Manage student performance with a comprehensive performance management system.
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
-  
-        {/* Card 3 */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <i className="bi bi-bar-chart-line mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
-              <Card.Title className="text-black h5">Create Announcement</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/teacher-classes')}
-              >
-                <i className="bi bi-bar-chart-line me-2"></i> Create Announcement
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Redirects you to the page where you can create announcements for your students.
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
-  
-        {/* Card 4 */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <i className="bi bi-bar-chart-line mb-3" style={{ fontSize: '50px', color: '#fff' }}></i>
-              <Card.Title className="text-black h5">Rubrics</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/rubricsTeacher')}
-              >
-                <i className="bi bi-bar-chart-line me-2"></i> Rubrics
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Access the rubric management page to create and manage rubrics.
-              </Card.Text>
-              
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={() => navigate('/crud-rubric')}
-              >
-                <i className="bi bi-bar-chart-line me-2"></i> CRUD Rubrics
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Create, update, or delete rubrics for your assignments.
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
-  
-        {/* New Card with Switch Slider */}
-        <div className="col-12 col-md-4 mb-4 d-flex">
-          <Card className="shadow-lg border-primary h-100 w-100">
-            <Card.Body className="text-center p-4">
-              <Card.Title className="text-black h5 mb-3">AI Feature Settings</Card.Title>
-              <Button
-                variant="primary"
-                className="w-100 mt-3"
-                onClick={handleShowModal} // Open the modal
-              >
-                Configure AI Grading
-              </Button>
-              <Card.Text className="text-black mt-3">
-                Access the settings to configure AI features like grading for all your classes.
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
+       {/* Card 2 */}
+       <div 
+      className="feature"
+      onClick={() => navigate('/class')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>Track Student Progress</h3>
+      <p>View the overall progress and performance of students in your classes.</p>
       </div>
-  
-      {/* Modal to show settings for all classes */}
+       {/* Card 3 */}
+       <div 
+      className="feature"
+      onClick={() => navigate('/performance-management')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>Performance Management System</h3>
+      <p>Manage student performance with a comprehensive performance management system.</p>
+      </div>
+      </section>
+       {/* Card 4 */}
+       <section className="features">
+       <div 
+      className="feature"
+      onClick={() => navigate('/teacher-classes')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>Create Announcement</h3>
+      <p>Redirects you to the page where you can create announcements for your students.</p>
+      </div>
+       {/* Card 5 */}
+       <div 
+      className="feature"
+      onClick={() => navigate('/rubricsTeacher')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>Rubrics</h3>
+      <p>Access the rubric management page to create and manage rubrics.</p>
+      </div>
+       {/* Card 6 */}
+       <div 
+      className="feature"
+      onClick={() => navigate('/crud-rubric')} // This will trigger navigation to /crud-topic
+      style={{ cursor: 'pointer' }} // Makes the div look clickable
+      >
+      <img src={speaking} alt="Feature 1" className="img-fluid rounded mb-3" />
+      <h3>CRUD Rubrics</h3>
+      <p>Create, update, or delete rubrics for your assignments.</p>
+      </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="about-us">
+        <h2>About Us</h2>
+        <p>Our vision is to create an online webpage that can boost students elonquent skills while alievating teachers workload</p>
+      </section>
+
+      {/* Footer Extra Section */}
+      <section className="footer-extra">
+        <p>Contact Us: oralassessment@hotmail.com</p>
+      </section>
+
+      {/* Footer Section */}
+      <footer className="footer">
+        <p>&copy; 2025 Student Learning Space | All Rights Reserved</p>
+      </footer>
+
+      {/* Modal for AI Settings */}
       <Modal show={showSettingsModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
           <Modal.Title>Configure AI Features</Modal.Title>
@@ -250,26 +221,8 @@ const HomeTeacher = ({ username, onLogout }) => {
           </Button>
         </Modal.Footer>
       </Modal>
-  
-      {/* Logout Button */}
-      <div className="d-flex justify-content-center mt-5">
-        <button
-          onClick={onLogout}
-          className="btn btn-danger"
-          style={{
-            width: '200px',
-            padding: '10px 0',
-            fontSize: '18px',
-            borderRadius: '50px',
-          }}
-        >
-          <i className="bi bi-box-arrow-right me-2"></i> Logout
-        </button>
-      </div>
     </div>
-    
   );
-  
 };
 
 export default HomeTeacher;
