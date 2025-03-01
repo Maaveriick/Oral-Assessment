@@ -1240,21 +1240,20 @@ app.get('/grades', async (req, res) => {
 
   try {
     // Fetch grades for the specific classId
-    const query = 
-      `SELECT username, grade, COALESCE(attempt_count, 0) as attempt_count
-       FROM feedback
-       WHERE class_id = $1`;
+    const query = `
+      SELECT username, grade, COALESCE(attempt_count, 0) as attempt_count
+      FROM feedback
+      WHERE class_id = $1
+    `;
     const result = await pool.query(query, [classId]);  // Use classId from the request
 
     const grades = result.rows;
 
     // Validate and clean up grade data
     const cleanedGrades = grades.map(student => {
-      // Clean the grade (remove % and ensure it's a valid number)
       let grade = student.grade.replace('%', '').trim(); // Remove the '%' and any extra spaces
       grade = parseFloat(grade); // Convert to float
 
-      // If grade is not a valid number, set it to 0
       if (isNaN(grade)) {
         grade = 0;
       }
@@ -1267,7 +1266,7 @@ app.get('/grades', async (req, res) => {
     const classAverage = cleanedGrades.length > 0 ? totalGrades / cleanedGrades.length : 0;
 
     // Calculate Grade Distribution
-    const gradeDistribution = { A: 0, B: 0, C: 0, D: 0, E:0, F: 0 };
+    const gradeDistribution = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
     cleanedGrades.forEach((student) => {
       const grade = student.grade;
       if (grade >= 70) gradeDistribution.A++;
@@ -1278,16 +1277,21 @@ app.get('/grades', async (req, res) => {
       else gradeDistribution.F++;
     });
 
+    // Calculate totalAttempts (number of grade entries)
+    const totalAttempts = cleanedGrades.length; // This is now counting the number of records
+
     res.json({
       grades: cleanedGrades,
       classAverage,
       gradeDistribution,
+      totalAttempts, // New field added
     });
   } catch (error) {
     console.error('Error fetching grades:', error);
     res.status(500).json({ error: 'Error fetching grades.' });
   }
 });
+
 
 
 app.get('/individual-analysis', async (req, res) => {
@@ -2012,17 +2016,64 @@ app.get('/get-user-id-by-email', async (req, res) => {
   }
 });
 
-// Endpoint to get average time_elapsed
+// Endpoint to get average time_elapsed for a specific class
 app.get('/average-time', async (req, res) => {
+  const { classId } = req.query; // Extract classId from query parameters
+
+  if (!classId) {
+    return res.status(400).json({ error: 'Missing classId' });
+  }
+
   try {
+    // Fetch average time_elapsed for students in the specified class
     const result = await pool.query(`
       SELECT AVG(COALESCE(CAST("time_elapsed" AS numeric), 0)) AS average_time
-      FROM "assessment_sessions";
-    `);
-    res.json({ averageTime: result.rows[0].average_time }); // Sends back the average time
+      FROM "assessment_sessions"
+      WHERE "username" IN (SELECT "username" FROM "feedback" WHERE "class_id" = $1);
+    `, [classId]);
+
+    const averageTime = result.rows[0].average_time || 0; // Ensure response is never null
+
+    res.json({ averageTime });
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching class-specific average time:', error);
     res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+// Endpoint to get average time_elapsed for an individual student
+app.get('/average-time-individual', async (req, res) => {
+  const { classId, userId, username } = req.query;
+
+  if (!userId && !username) {
+    return res.status(400).json({ error: 'Missing userId or username' });
+  }
+
+  try {
+    let query = `
+      SELECT AVG(COALESCE(CAST("time_elapsed" AS numeric), 0)) AS average_time
+      FROM "assessment_sessions"
+      WHERE "username" IN (
+        SELECT "username" FROM "feedback" WHERE "class_id" = $1
+      )`;
+
+    const queryParams = [classId];
+
+    if (userId) {
+      query += ` AND "user_id" = $2`;
+      queryParams.push(userId);
+    } else if (username) {
+      query += ` AND "username" = $2`;
+      queryParams.push(username);
+    }
+
+    const result = await pool.query(query, queryParams);
+    const averageTime = result.rows[0].average_time || 0; // Ensure response is never null
+
+    res.json({ averageTime });
+  } catch (error) {
+    console.error('Error fetching individual average time:', error);
+    res.status(500).json({ error: 'Error fetching individual average time.' });
   }
 });
 

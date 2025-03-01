@@ -28,6 +28,8 @@ const ClassAnalysis = () => {
   const [classAverage, setClassAverage] = useState(null);
   const [gradeDistribution, setGradeDistribution] = useState([]);
   const [averageTime, setAverageTime] = useState(null); 
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  
   
 
   const getGradeBand = (average) => {
@@ -56,28 +58,30 @@ const ClassAnalysis = () => {
       setGrades(response.data.grades || []);
       setClassAverage(response.data.classAverage || null);
       setGradeDistribution(response.data.gradeDistribution || []);
+      setTotalAttempts(response.data.totalAttempts);
     } catch (error) {
       console.error("Error fetching grades:", error);
     }
   };
   
 
+useEffect(() => {
+  const classId = new URLSearchParams(window.location.search).get("classId"); // Extract classId from URL
 
-  // Fetch average time from backend
-  useEffect(() => {
-    axios.get('http://localhost:5000/average-time')
-      .then((response) => {
-        const avgTime = parseFloat(response.data.averageTime);
-        if (!isNaN(avgTime)) {
-          setAverageTime(avgTime);  // Always store a number
-        } else {
-          setAverageTime(null);  // Handle if data is invalid
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching average time:', error);
-      });
-  }, []);
+  if (!classId) {
+    console.error("Class ID is missing in URL");
+    return;
+  }
+
+  axios.get(`http://localhost:5000/average-time?classId=${classId}`)
+    .then((response) => {
+      const avgTime = parseFloat(response.data.averageTime);
+      setAverageTime(!isNaN(avgTime) ? avgTime : null);
+    })
+    .catch((error) => {
+      console.error("Error fetching class-specific average time:", error);
+    });
+}, []);
 
   // Call fetchGrades and fetchAverageTime when the component mounts
   useEffect(() => {
@@ -123,8 +127,8 @@ const ClassAnalysis = () => {
         {/* ROW 1 */}
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Average Grade/Band Of Class"
-            subtitle={classAverage ? `${classAverage.toPrecision(3)}% / ${getGradeBand(classAverage)}` : "Loading..."}
+            title="Average Grade Of Class"
+            subtitle={classAverage ? `${classAverage.toPrecision(3)}%` : "Loading..."}
             progress="0.1"
             increase=""
             icon={<SpellCheckIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -133,8 +137,8 @@ const ClassAnalysis = () => {
   
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Oral Assessments Pending For Marking"
-            subtitle="12"
+            title="Average Band Of Class"
+            subtitle={classAverage ? `${getGradeBand(classAverage)}` : "Loading..."}
             progress="0.50"
             increase=""
             icon={<PendingIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -143,8 +147,8 @@ const ClassAnalysis = () => {
   
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Average Attempts Per Class/Topic/Individual"
-            subtitle="12"
+            title="Total Attempts Of Class"
+            subtitle={totalAttempts !== null ? totalAttempts : "Loading..."}
             progress="0.30"
             increase=""
             icon={<PersonAddIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -154,7 +158,7 @@ const ClassAnalysis = () => {
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
             title="Ungraded Orals"
-            subtitle="80%"
+            subtitle="/////"
             progress="0.80"
             increase=""
             icon={<TrafficIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -227,11 +231,12 @@ const ClassAnalysis = () => {
           <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
             <ProgressCircle size="110" />
             <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
-              {averageTime ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
+              {averageTime !== null ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
             </Typography>
-            <Typography>Average response time across all students</Typography>
+            <Typography>Average response time for this class</Typography>
           </Box>
         </Box>
+
   
         <Box gridColumn="span 4" gridRow="span 2" backgroundColor="white" borderRadius="12px" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)">
           <Typography variant="h5" fontWeight="600" sx={{ padding: "30px 30px 0 30px" }}>
@@ -240,9 +245,9 @@ const ClassAnalysis = () => {
           <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
             <ProgressCircle size="110" />
             <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
-              {averageTime ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
+            /////
             </Typography>
-            <Typography>Average response time across all students</Typography>
+            <Typography>/////</Typography>
           </Box>
         </Box>
   
@@ -253,9 +258,9 @@ const ClassAnalysis = () => {
           <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
             <ProgressCircle size="110" />
             <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
-              {averageTime ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
+            /////
             </Typography>
-            <Typography>Average response time across all students</Typography>
+            <Typography>/////</Typography>
           </Box>
         </Box>
       </Box>

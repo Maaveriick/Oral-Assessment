@@ -54,6 +54,9 @@ ALTER TABLE assessment_sessions
 ADD COLUMN user_id INT,
 ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id);
 
+ALTER TABLE assessment_sessions ADD COLUMN new_column INTEGER;
+
+
 
 feedback,
 

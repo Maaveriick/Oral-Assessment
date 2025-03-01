@@ -45,42 +45,45 @@ const IndividualAnalysis = () => {
     else return 'F';
   };
 
-  // Fetch grades for the specific user and classId
   const fetchGrades = async () => {
     if (!classId || !userId) {
       console.error("Missing classId or userId");
       return;
     }
-
+  
     try {
       const response = await axios.get(
         `http://localhost:5000/individual-analysis?classId=${classId}&userId=${userId}`
       );
-      setGrades(response.data.grades || []);
+  
+      console.log("Response from /individual-analysis:", response.data); // Debugging log
+  
+      setGrades(response.data.individualGrades || []); // Ensure it updates the state
       setAverageGrade(response.data.averageGrade);
-      setGradeDistribution(response.data.gradeDistribution || []);
+      setGradeDistribution(response.data.gradeDistribution || {});
       setTotalAttempts(response.data.totalAttempts);
     } catch (error) {
       console.error("Error fetching grades:", error);
     }
   };
   
-  // Fetch average time from backend
   useEffect(() => {
-    axios.get('http://localhost:5000/average-time')
+    if (!classId || !userId) {
+      console.error("Missing classId or userId");
+      return;
+    }
+  
+    axios.get(`http://localhost:5000/average-time-individual?classId=${classId}&userId=${userId}`)
       .then((response) => {
         const avgTime = parseFloat(response.data.averageTime);
-        if (!isNaN(avgTime)) {
-          setAverageTime(avgTime);  // Always store a number
-        } else {
-          setAverageTime(null);  // Handle if data is invalid
-        }
+        setAverageTime(!isNaN(avgTime) ? avgTime : null);
+        console.log("Response from /individual-analysis:", response.data); // Debugging log
       })
       .catch((error) => {
-        console.error('Error fetching average time:', error);
+        console.error("Error fetching individual average time:", error);
       });
-  }, []);
-
+  }, [classId, userId]); // Runs when classId or userId changes
+  
 
   // Fetch grades on component mount
   useEffect(() => {
@@ -106,7 +109,7 @@ const IndividualAnalysis = () => {
       {/* HEADER */}
       <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
         <Header 
-          title="PERFORMANCE DASHBOARD" 
+          title={`PERFORMANCE DASHBOARD OF ${grades.length > 0 ? grades[0].username : "Student"}`}  
           subtitle="Welcome to your dashboard"
           sx={{ fontSize: "24px", fontWeight: "bold", color: "#4a4e69" }} 
         />
@@ -126,9 +129,9 @@ const IndividualAnalysis = () => {
         {/* ROW 1 */}
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Average Grade/Band Of Class"
-            subtitle={averageGrade !== null ? `${averageGrade.toFixed(2)}% / ${getGradeBand(averageGrade)}` : "Loading..."}
-            progress="0.1"  // Optional: replace with your own progress logic if necessary
+            title={`Average Grade Of ${grades.length > 0 ? grades[0].username : "Student"}`}
+            subtitle={averageGrade !== null ? `${averageGrade.toFixed(2)}%` : "Loading..."}
+            progress="0.1"  
             increase=""
             icon={<SpellCheckIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
           />
@@ -136,8 +139,8 @@ const IndividualAnalysis = () => {
   
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Oral Assessments Pending For Marking"
-            subtitle="12"
+            title={`Average Band Of ${grades.length > 0 ? grades[0].username : "Student"}`}
+            subtitle={averageGrade !== null ? `${getGradeBand(averageGrade)}` : "Loading..."}
             progress="0.50"
             increase=""
             icon={<PendingIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -146,8 +149,8 @@ const IndividualAnalysis = () => {
   
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
-            title="Average Attempts Per Class/Topic/Individual"
-            subtitle="12"
+            title={`Total Attempts Of ${grades.length > 0 ? grades[0].username : "Student"}`} 
+            subtitle={totalAttempts !== null ? totalAttempts : "Loading..."}
             progress="0.30"
             increase=""
             icon={<PersonAddIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -157,7 +160,7 @@ const IndividualAnalysis = () => {
         <Box gridColumn="span 3" backgroundColor="white" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" borderRadius="12px" display="flex" alignItems="center" justifyContent="center">
           <StatBox
             title="Ungraded Orals"
-            subtitle="80%"
+            subtitle="/////"
             progress="0.80"
             increase=""
             icon={<TrafficIcon sx={{ color: "#4a4e69", fontSize: "28px" }} />}
@@ -168,9 +171,9 @@ const IndividualAnalysis = () => {
         <Box gridColumn="span 8" gridRow="span 2" backgroundColor="white" borderRadius="12px" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)">
           <Box mt="25px" p="0 30px" display="flex" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h5" fontWeight="600" color="#4a4e69">
-                Grade Distribution Of Class
-              </Typography>
+            <Typography variant="h5" fontWeight="600" color="#4a4e69">
+              Grade Distribution Of {grades.length > 0 ? grades[0].username : "Student"}
+            </Typography>
             </Box>
             <Box>
               <Select
@@ -210,12 +213,12 @@ const IndividualAnalysis = () => {
         <Box gridColumn="span 4" gridRow="span 2" backgroundColor="white" overflow="auto" borderRadius="12px" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)">
           <Box display="flex" justifyContent="space-between" alignItems="center" borderBottom="4px solid #f4f7fb" p="15px">
             <Typography color="#4a4e69" variant="h5" fontWeight="600">
-              Highest Grade Of Each Student
+              Highest Grade Of {grades.length > 0 ? grades[0].username : "Student"}'s Attempts
             </Typography>
           </Box>
           {grades.length > 0 ? (
             grades.map((student) => (
-              <Typography key={student.user_id}>{student.username}: {student.grade}%</Typography>
+              <Typography key={student.user_id}>{student.username}: {student.grade}</Typography>
             ))
           ) : (
             <Typography>Loading grades...</Typography>
@@ -225,23 +228,28 @@ const IndividualAnalysis = () => {
         {/* ROW 3 */}
         <Box gridColumn="span 4" gridRow="span 2" backgroundColor="white" borderRadius="12px" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)" p="30px">
           <Typography variant="h5" fontWeight="600">
-            Average Time Taken For Student Response
+            Average Time Taken by {grades.length > 0 ? grades[0].username : "Student"}
           </Typography>
           <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
             <ProgressCircle size="110" />
             <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
-              {averageTime ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
+              {averageTime !== null ? `${averageTime.toPrecision(3)} seconds` : "Loading..."}
             </Typography>
-            <Typography>Average response time across all students</Typography>
+            <Typography>Average response time for this student</Typography>
           </Box>
         </Box>
+
   
         <Box gridColumn="span 4" gridRow="span 2" backgroundColor="white" borderRadius="12px" boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)">
           <Typography variant="h5" fontWeight="600" sx={{ padding: "30px 30px 0 30px" }}>
             Percentage of Attempts/Number
           </Typography>
-          <Box height="250px" mt="-20px">
-            <BarChartIndividual isClassAnalysis={true} />
+          <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
+            <ProgressCircle size="110" />
+            <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
+            /////
+            </Typography>
+            <Typography>/////</Typography>
           </Box>
         </Box>
   
@@ -249,8 +257,12 @@ const IndividualAnalysis = () => {
           <Typography variant="h5" fontWeight="600" sx={{ marginBottom: "15px" }}>
             Percentage of Pass/Fail/Distinction for Topic/Class
           </Typography>
-          <Box height="200px">
-            <PieChartIndividual isClassAnalysis={true} />
+          <Box display="flex" flexDirection="column" alignItems="center" mt="25px">
+            <ProgressCircle size="110" />
+            <Typography variant="h5" color="#4a4e69" sx={{ mt: "15px" }}>
+            /////
+            </Typography>
+            <Typography>/////</Typography>
           </Box>
         </Box>
       </Box>
